@@ -10,8 +10,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { User } from './users.repository';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { Users } from './entities/users.entity';
 
 @Controller('users')
 export class UsersController {
@@ -22,7 +22,7 @@ export class UsersController {
   async getAllUsers(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-  ): Promise<Omit<User, 'password'>[]> {
+  ): Promise<Omit<Users, 'password'>[]> {
     const pageNum = Number(page);
     const limitNum = Number(limit);
     const validPage = pageNum > 0 && !isNaN(pageNum) ? pageNum : 1;
