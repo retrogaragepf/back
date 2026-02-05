@@ -12,6 +12,7 @@ import {
 import { UsersService } from './users.service';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { Users } from './entities/users.entity';
+import { CreateUserDto } from './dto/users.dto';
 
 @Controller('users')
 export class UsersController {
@@ -36,16 +37,16 @@ export class UsersController {
   }
 
   @Post()
-  async addUser(@Body() newUserData: any) {
+  async addUser(@Body() newUserData: CreateUserDto) {
     return await this.usersService.addUser(newUserData);
   }
 
-  @Put('id')
+  @Put(':id')
   async updateUser(@Param('id') id: string, @Body() updateUserData: any) {
     return await this.usersService.updateUser(id, updateUserData);
   }
 
-  @Delete('id')
+  @Delete(':id')
   async deleteUser(@Param('id') id: string) {
     return await this.usersService.deleteUser(id);
   }

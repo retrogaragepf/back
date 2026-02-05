@@ -17,7 +17,7 @@ export class Users {
     length: 50,
     nullable: false,
   })
-  fullName: string;
+  name: string;
 
   @Column({
     type: 'varchar',

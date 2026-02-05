@@ -1,10 +1,18 @@
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+import { environment } from './config/environment';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3002);
 
-  console.log('Servidor escuchando en el puerto 3002');
+  const PORT = environment.PORT;
+  const HOST = environment.HOST;
+  app.useGlobalPipes(new ValidationPipe());
+
+  await app.listen(PORT);
+
+  console.log(`Servidor escuchando en http://${HOST}:${PORT}`);
 }
 bootstrap();
