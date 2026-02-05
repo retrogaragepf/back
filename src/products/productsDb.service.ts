@@ -7,6 +7,10 @@ import { Repository } from 'typeorm';
 export class ProductsDbService {
   constructor(
     @InjectRepository(Product)
-    private productsRepository: Repository<Product>,
+    private readonly productsRepository: Repository<Product>,
   ) {}
+
+  getAllProducts() {
+    return this.productsRepository.find();
+  }
 }
