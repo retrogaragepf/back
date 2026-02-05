@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/products.entity';
 import { Repository } from 'typeorm';
@@ -8,7 +8,7 @@ import { CreateProductDto } from './dto/products.dto';
 export class ProductsDbService {
   constructor(
     @InjectRepository(Product)
-    private productsRepository: Repository<Product>,
+    private readonly productsRepository: Repository<Product>,
   ) {}
 
   async getProducts(page: number = 1, limit: number = 5): Promise<Product[]> {
@@ -24,32 +24,32 @@ export class ProductsDbService {
     return this.productsRepository.findOne({ where: { id } });
   }
 
-  async createProduct(dto: CreateProductDto): Promise<Product> {
-    const category = await this.categoriesRepository.findOne({
-      where: { id: dto.categoryId },
-    });
+  // async createProduct(dto: CreateProductDto): Promise<Product> {
+  //   const category = await this.categoriesRepository.findOne({
+  //     where: { id: dto.categoryId },
+  //   });
 
-    if (!category) {
-      throw new NotFoundException('Category not found');
-    }
+  //     if (!category) {
+  //       throw new NotFoundException('Category not found');
+  //     }
 
-    const product = this.productsRepository.create({
-      ...dto,
-      category,
-    });
+  //     const product = this.productsRepository.create({
+  //       ...dto,
+  //       category,
+  //     });
 
-    return await this.productsRepository.save(product);
-  }
+  //     return await this.productsRepository.save(product);
+  //   }
 
-  async updateProduct(
-    id: string,
-    product: Partial<Product>,
-  ): Promise<Product | null> {
-    await this.productsRepository.update(id, product);
-    return this.getProductById(id);
-  }
+  //   async updateProduct(
+  //     id: string,
+  //     product: Partial<Product>,
+  //   ): Promise<Product | null> {
+  //     await this.productsRepository.update(id, product);
+  //     return this.getProductById(id);
+  //   }
 
-  async deleteProduct(id: string): Promise<void> {
-    await this.productsRepository.delete(id);
-  }
+  //   async deleteProduct(id: string): Promise<void> {
+  //     await this.productsRepository.delete(id);
+  //   }
 }
