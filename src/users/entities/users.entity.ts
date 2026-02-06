@@ -5,70 +5,54 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-@Entity({
-  name: 'USERS',
-})
+@Entity({ name: 'USERS' })
 export class Users {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({
-    type: 'varchar',
-    length: 50,
-    nullable: false,
-  })
+  @Column({ type: 'varchar', length: 50 })
   name: string;
 
-  @Column({
-    type: 'varchar',
-    length: 50,
-    nullable: false,
-    unique: true,
-  })
+  @Column({ type: 'varchar', length: 50, unique: true })
   email: string;
 
-  @Column({
-    type: 'varchar',
-    length: 60,
-    nullable: false,
-  })
+  @Column({ type: 'varchar', length: 60 })
   password: string;
 
+  // 👇 OPCIONAL
   @Column({
-    type: 'int',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
   })
-  phone: string;
+  phone?: string;
 
   @Column({
     type: 'varchar',
     length: 50,
+    nullable: true,
   })
-  country: string;
+  country?: string;
 
   @Column({
     type: 'varchar',
     length: 50,
+    nullable: true,
   })
-  city: string;
+  city?: string;
 
   @Column({
     type: 'text',
+    nullable: true,
   })
-  address: string;
+  address?: string;
 
-  @Column({
-    default: false,
-  })
+  @Column({ default: false })
   isAdmin: boolean;
 
-  @Column({
-    default: true,
-    name: 'is_active',
-  })
+  @Column({ default: true, name: 'is_active' })
   isActive: boolean;
 
-  @CreateDateColumn({
-    type: 'timestamp',
-  })
+  @CreateDateColumn()
   createdAt: Date;
 }
