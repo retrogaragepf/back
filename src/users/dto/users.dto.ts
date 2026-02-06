@@ -1,9 +1,10 @@
-import { ApiHideProperty } from '@nestjs/swagger';
+import { ApiHideProperty, PickType } from '@nestjs/swagger';
 import {
   IsEmail,
   IsEmpty,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   IsStrongPassword,
   MaxLength,
@@ -36,30 +37,9 @@ export class CreateUserDto {
     },
   )
   password: string;
-
-  //   @IsNotEmpty()
-  //   @Validate(MatchPassword, ['password'])
-  //   confirmPassword: string;
-
-  @IsNumber()
-  phone: string;
-
-  @IsString({ message: 'Dirección debe ser un string' })
-  @MinLength(3, { message: 'Dirección de al menos 3 caracteres' })
-  @MaxLength(80, { message: 'Dirección de máximo 80 caracteres' })
-  address: string;
-
-  @IsString({ message: 'Ciudad debe ser un string' })
-  @MinLength(5, { message: 'Ciudad de al menos 5 caracteres' })
-  @MaxLength(20, { message: 'Ciudad de máximo 20 caracteres' })
-  city: string;
-
-  @IsString({ message: 'País debe ser un string' })
-  @MinLength(5, { message: 'País de al menos 5 caracteres' })
-  @MaxLength(20, { message: 'País de máximo 20 caracteres' })
-  country: string;
-
-  @ApiHideProperty()
-  @IsEmpty()
-  isAdmin: boolean;
 }
+
+export class LoginUserDto extends PickType(CreateUserDto, [
+  'email',
+  'password',
+]) {}
