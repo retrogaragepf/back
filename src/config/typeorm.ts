@@ -22,3 +22,9 @@ const config = {
 export const typeOrmConfig = registerAs('typeorm', () => config);
 
 export const connectionSource = new DataSource(config as DataSourceOptions);
+
+//! Si me tira error el render es por esto:
+// {
+//         url: process.env.DATABASE_URL,
+//         ssl: { rejectUnauthorized: false },
+//       }
