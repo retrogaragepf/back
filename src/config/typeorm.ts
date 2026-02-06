@@ -17,14 +17,10 @@ const config = {
   logging: false,
   synchronize: true,
   dropSchema: false, //! PASAR A FALSE EN PRODUCCIÓN!!!
+  // url: process.env.DATABASE_URL,
+  // ssl: { rejectUnauthorized: false },//* Si me tira error el render es por esto:
 };
 
 export const typeOrmConfig = registerAs('typeorm', () => config);
 
 export const connectionSource = new DataSource(config as DataSourceOptions);
-
-//! Si me tira error el render es por esto:
-// {
-//         url: process.env.DATABASE_URL,
-//         ssl: { rejectUnauthorized: false },
-//       }
