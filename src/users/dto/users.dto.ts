@@ -41,23 +41,19 @@ export class CreateUserDto {
   //   @Validate(MatchPassword, ['password'])
   //   confirmPassword: string;
 
-  @IsNotEmpty({ message: 'Teléfono no puede estar vacío' })
   @IsNumber()
   phone: string;
 
-  @IsNotEmpty({ message: 'Dirección no puede estar vacía' })
   @IsString({ message: 'Dirección debe ser un string' })
   @MinLength(3, { message: 'Dirección de al menos 3 caracteres' })
   @MaxLength(80, { message: 'Dirección de máximo 80 caracteres' })
   address: string;
 
-  @IsNotEmpty({ message: 'Ciudad no puede estar vacío' })
   @IsString({ message: 'Ciudad debe ser un string' })
   @MinLength(5, { message: 'Ciudad de al menos 5 caracteres' })
   @MaxLength(20, { message: 'Ciudad de máximo 20 caracteres' })
   city: string;
 
-  @IsNotEmpty({ message: 'País no puede estar vacío' })
   @IsString({ message: 'País debe ser un string' })
   @MinLength(5, { message: 'País de al menos 5 caracteres' })
   @MaxLength(20, { message: 'País de máximo 20 caracteres' })
