@@ -1,15 +1,16 @@
-import { ApiHideProperty, PickType } from '@nestjs/swagger';
+import { PickType } from '@nestjs/swagger';
 import {
   IsEmail,
   IsEmpty,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   IsStrongPassword,
   MaxLength,
   MinLength,
+  Validate,
 } from 'class-validator';
+import { MatchPassword } from 'src/decorators/matchpassword.decorator';
 
 export class CreateUserDto {
   @IsNotEmpty({ message: 'Nombre no puede estar vacío' })
@@ -37,6 +38,24 @@ export class CreateUserDto {
     },
   )
   password: string;
+
+  @IsNotEmpty()
+  @Validate(MatchPassword, ['password'])
+  confirmPassword: string;
+}
+
+export class UpdateUserDto {
+  @IsOptional()
+  address: String;
+
+  @IsOptional()
+  phone: string;
+
+  @IsOptional()
+  city: string;
+
+  @IsOptional()
+  country: string;
 }
 
 export class LoginUserDto extends PickType(CreateUserDto, [

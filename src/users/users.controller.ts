@@ -4,7 +4,7 @@ import {
   Delete,
   Get,
   Param,
-  Post,
+  ParseUUIDPipe,
   Put,
   Query,
   UseGuards,
@@ -12,7 +12,7 @@ import {
 import { UsersService } from './users.service';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { Users } from './entities/users.entity';
-import { CreateUserDto } from './dto/users.dto';
+import { UpdateUserDto } from './dto/users.dto';
 
 @Controller('users')
 export class UsersController {
@@ -32,22 +32,20 @@ export class UsersController {
   }
 
   @Get(':id')
-  async getUserById(@Param('id') id: string) {
+  async getUserById(@Param('id', ParseUUIDPipe) id: string) {
     return await this.usersService.getUserById(id);
   }
 
-  @Post()
-  async addUser(@Body() newUserData: CreateUserDto) {
-    return await this.usersService.addUser(newUserData);
-  }
-
   @Put(':id')
-  async updateUser(@Param('id') id: string, @Body() updateUserData: any) {
+  async updateUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateUserData: UpdateUserDto,
+  ) {
     return await this.usersService.updateUser(id, updateUserData);
   }
 
   @Delete(':id')
-  async deleteUser(@Param('id') id: string) {
+  async deleteUser(@Param('id', ParseUUIDPipe) id: string) {
     return await this.usersService.deleteUser(id);
   }
 }

@@ -42,6 +42,17 @@ export class UsersRepository {
     return savedUser.id;
   }
 
+  // async addUser(newUserData: CreateUserDto): Promise<string> {
+  //   const user = this.ormUsersRepository.create({
+  //     name: newUserData.name,
+  //     email: newUserData.email,
+  //     password: newUserData.password,
+  //   });
+
+  //   const savedUser = await this.ormUsersRepository.save(user);
+  //   return savedUser.id;
+  // }
+
   async updateUser(
     id: string,
     newUserData: Users,

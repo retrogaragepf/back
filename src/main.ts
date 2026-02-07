@@ -10,7 +10,11 @@ async function bootstrap() {
 
   const PORT = environment.PORT;
   const HOST = environment.HOST;
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+    }),
+  );
 
   await app.listen(PORT);
 

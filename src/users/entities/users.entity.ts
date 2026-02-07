@@ -10,16 +10,29 @@ export class Users {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: false,
+  })
   name: string;
 
-  @Column({ type: 'varchar', length: 50, unique: true })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: false,
+    unique: true,
+  })
   email: string;
 
-  @Column({ type: 'varchar', length: 60 })
+  @Column({
+    type: 'varchar',
+    length: 60,
+    nullable: false,
+  })
   password: string;
 
-  // 👇 OPCIONAL
+  // OPCIONAL
   @Column({
     type: 'varchar',
     length: 20,
