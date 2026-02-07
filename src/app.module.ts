@@ -7,6 +7,8 @@ import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { typeOrmConfig } from './config/typeorm';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { environment } from './config/environment';
 
 @Module({
   imports: [
@@ -21,6 +23,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     }),
     UsersModule,
     AuthModule,
+    JwtModule.register({
+      global: true,
+      secret: environment.JWT_SECRET,
+      signOptions: { expiresIn: '60m' },
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
