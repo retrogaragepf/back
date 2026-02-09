@@ -1,14 +1,16 @@
-import { ApiHideProperty } from '@nestjs/swagger';
+import { PickType } from '@nestjs/swagger';
 import {
   IsEmail,
   IsEmpty,
   IsNotEmpty,
-  IsNumber,
+  IsOptional,
   IsString,
   IsStrongPassword,
   MaxLength,
   MinLength,
+  Validate,
 } from 'class-validator';
+import { MatchPassword } from 'src/decorators/matchpassword.decorator';
 
 export class CreateUserDto {
   @IsNotEmpty({ message: 'Nombre no puede estar vacío' })
@@ -37,30 +39,26 @@ export class CreateUserDto {
   )
   password: string;
 
-  //   @IsNotEmpty()
-  //   @Validate(MatchPassword, ['password'])
-  //   confirmPassword: string;
+  @IsNotEmpty()
+  @Validate(MatchPassword, ['password'])
+  confirmPassword: string;
+}
 
-  @IsNotEmpty({ message: 'Teléfono no puede estar vacío' })
-  @IsNumber()
+export class UpdateUserDto {
+  @IsOptional()
+  address: String;
+
+  @IsOptional()
   phone: string;
 
-  @IsString({ message: 'Dirección debe ser un string' })
-  @MinLength(3, { message: 'Dirección de al menos 3 caracteres' })
-  @MaxLength(80, { message: 'Dirección de máximo 80 caracteres' })
-  address: string;
-
-  @IsString({ message: 'Ciudad debe ser un string' })
-  @MinLength(5, { message: 'Ciudad de al menos 5 caracteres' })
-  @MaxLength(20, { message: 'Ciudad de máximo 20 caracteres' })
+  @IsOptional()
   city: string;
 
-  @IsString({ message: 'País debe ser un string' })
-  @MinLength(5, { message: 'País de al menos 5 caracteres' })
-  @MaxLength(20, { message: 'País de máximo 20 caracteres' })
+  @IsOptional()
   country: string;
-
-  @ApiHideProperty()
-  @IsEmpty()
-  isAdmin: boolean;
 }
+
+export class LoginUserDto extends PickType(CreateUserDto, [
+  'email',
+  'password',
+]) {}

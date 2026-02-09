@@ -14,6 +14,9 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { CreateProductDto } from './dto/products.dto';
 import { Product } from './entities/products.entity';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/decorators/roles.decorators';
+import { Role } from 'src/auth/enum/roles.enum';
 
 @ApiTags('Products')
 @Controller('products')
