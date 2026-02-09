@@ -24,32 +24,32 @@ export class ProductsDbService {
     return this.productsRepository.findOne({ where: { id } });
   }
 
-  // async createProduct(dto: CreateProductDto): Promise<Product> {
-  //   const category = await this.categoriesRepository.findOne({
-  //     where: { id: dto.categoryId },
-  //   });
+  async createProduct(dto: CreateProductDto): Promise<Product> {
+    const category = await this.categoriesRepository.findOne({
+      where: { id: dto.categoryId },
+    });
 
-  //     if (!category) {
-  //       throw new NotFoundException('Category not found');
-  //     }
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
 
-  //     const product = this.productsRepository.create({
-  //       ...dto,
-  //       category,
-  //     });
+    const product = this.productsRepository.create({
+      ...dto,
+      category,
+    });
 
-  //     return await this.productsRepository.save(product);
-  //   }
+    return await this.productsRepository.save(product);
+  }
 
-  //   async updateProduct(
-  //     id: string,
-  //     product: Partial<Product>,
-  //   ): Promise<Product | null> {
-  //     await this.productsRepository.update(id, product);
-  //     return this.getProductById(id);
-  //   }
+  async updateProduct(
+    id: string,
+    product: Partial<Product>,
+  ): Promise<Product | null> {
+    await this.productsRepository.update(id, product);
+    return this.getProductById(id);
+  }
 
-  //   async deleteProduct(id: string): Promise<void> {
-  //     await this.productsRepository.delete(id);
-  //   }
+  async deleteProduct(id: string): Promise<void> {
+    await this.productsRepository.delete(id);
+  }
 }
