@@ -1,3 +1,5 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmpty } from 'class-validator';
 import {
   Column,
   CreateDateColumn,
@@ -61,6 +63,7 @@ export class Users {
   address?: string;
 
   @Column({ default: false })
+  @IsEmpty()
   isAdmin: boolean;
 
   @Column({ default: true, name: 'is_active' })
