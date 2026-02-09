@@ -13,7 +13,6 @@ export class MatchPassword implements ValidatorConstraintInterface {
     confirmPassword: string,
     args: ValidationArguments,
   ): Promise<boolean> | boolean {
-    console.log(args);
     const obj = args.object as Record<string, unknown>;
     const key = args.constraints[0];
     const password = obj[key];
