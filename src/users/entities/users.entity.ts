@@ -1,5 +1,3 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmpty } from 'class-validator';
 import {
   Column,
   CreateDateColumn,
@@ -12,58 +10,34 @@ export class Users {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({
-    type: 'varchar',
-    length: 50,
-    nullable: false,
-  })
+  @Column({ length: 50 })
   name: string;
 
-  @Column({
-    type: 'varchar',
-    length: 50,
-    nullable: false,
-    unique: true,
-  })
+  @Column({ length: 50, unique: true })
   email: string;
 
   @Column({
     type: 'varchar',
     length: 60,
-    nullable: false,
+    nullable: true,
   })
-  password: string;
+  password: string | null;
 
-  // OPCIONAL
   @Column({
     type: 'varchar',
     length: 20,
     nullable: true,
   })
-  phone?: string;
+  provider?: 'local' | 'google';
 
   @Column({
     type: 'varchar',
-    length: 50,
+    length: 100,
     nullable: true,
   })
-  country?: string;
-
-  @Column({
-    type: 'varchar',
-    length: 50,
-    nullable: true,
-  })
-  city?: string;
-
-  @Column({
-    type: 'text',
-    nullable: true,
-  })
-  address?: string;
+  providerId?: string;
 
   @Column({ default: false })
-  @IsEmpty()
   isAdmin: boolean;
 
   @Column({ default: true, name: 'is_active' })

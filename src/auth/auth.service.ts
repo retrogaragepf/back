@@ -7,6 +7,7 @@ import { UsersRepository } from 'src/users/users.repository';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from 'src/users/dto/users.dto';
 import { JwtService } from '@nestjs/jwt';
+import { Users } from 'src/users/entities/users.entity';
 
 @Injectable()
 export class AuthService {
@@ -14,41 +15,86 @@ export class AuthService {
     private readonly usersRepository: UsersRepository,
     private readonly jwtService: JwtService,
   ) {}
-  getAuth() {
-    return 'Auth';
-  }
 
+  /* ================= LOGIN LOCAL ================= */
   async signIn(email: string, password: string) {
-    const foundUser = await this.usersRepository.getUserByEmail(email);
-    if (!foundUser || !foundUser.isActive)
-      throw new UnauthorizedException(`Email o password incorrectos`);
-    const validPassword = await bcrypt.compare(password, foundUser.password);
-    if (!validPassword)
+    const user = await this.usersRepository.getUserByEmail(email);
+
+    if (!user || !user.isActive) {
       throw new UnauthorizedException('Email o password incorrectos');
-    const payload = {
-      id: foundUser.id,
-      name: foundUser.name,
-      email: foundUser.email,
-      isAdmin: foundUser.isAdmin,
-    };
-    const token = this.jwtService.sign(payload);
-    return {
-      message: 'Usuario logueado',
-      token,
-    };
+    }
+
+    if (!user.password) {
+      throw new UnauthorizedException(
+        'Este usuario debe iniciar sesión con Google',
+      );
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      throw new UnauthorizedException('Email o password incorrectos');
+    }
+
+    return this.generateJwt(user);
   }
 
-  async signUp(newUserData: CreateUserDto) {
+  /* ================= REGISTRO LOCAL ================= */
+  async signUp(newUserData: CreateUserDto): Promise<{ id: string }> {
     const { email, password } = newUserData;
-    if (!email || !password)
+
+    if (!email || !password) {
       throw new BadRequestException('Email y password son requeridos');
-    const foundUser = await this.usersRepository.getUserByEmail(email);
-    if (foundUser)
+    }
+
+    const existingUser = await this.usersRepository.getUserByEmail(email);
+    if (existingUser) {
       throw new BadRequestException('Email ya se encuentra registrado');
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    return await this.usersRepository.addUser({
+
+    const user = await this.usersRepository.addUser({
       ...newUserData,
       password: hashedPassword,
     });
+
+    // 👇 SOLO devuelve id
+    return { id: user.id };
+  }
+
+  /* ================= GOOGLE LOGIN / SIGNUP ================= */
+  async googleLogin(googleUser: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    providerId: string;
+  }) {
+    let user = await this.usersRepository.getUserByEmail(googleUser.email);
+
+    if (!user) {
+      user = await this.usersRepository.addGoogleUser({
+        email: googleUser.email,
+        name: `${googleUser.firstName} ${googleUser.lastName}`,
+        providerId: googleUser.providerId,
+      });
+    }
+
+    // 👇 Google SIEMPRE autentica
+    return this.generateJwt(user);
+  }
+
+  /* ================= JWT ================= */
+  private generateJwt(user: Users) {
+    const payload = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin,
+    };
+
+    return {
+      message: 'Usuario autenticado',
+      token: this.jwtService.sign(payload),
+    };
   }
 }
