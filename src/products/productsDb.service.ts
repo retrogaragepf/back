@@ -6,6 +6,7 @@ import { CreateProductDto } from './dto/products.dto';
 import toStream from 'buffer-to-stream';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import { Categories } from 'src/categories/entities/Category.entity';
+import { Users } from 'src/users/entities/users.entity';
 
 @Injectable()
 export class ProductsDbService {
@@ -32,6 +33,7 @@ export class ProductsDbService {
   async createProduct(
     dto: CreateProductDto,
     file: Express.Multer.File,
+    user: Users,
   ): Promise<Product> {
     const category = await this.categoriesRepository.findOne({
       where: { id: dto.categoryId },
@@ -47,6 +49,7 @@ export class ProductsDbService {
       ...dto,
       imgUrl: imageUrl,
       category,
+      user,
     });
 
     return await this.productsRepository.save(product);

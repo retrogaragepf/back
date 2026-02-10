@@ -7,13 +7,14 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { ProductsDbService } from './productsDb.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CreateProductDto } from './dto/products.dto';
 import { Product } from './entities/products.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -25,7 +26,7 @@ export class ProductsController {
 
   @Get()
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   getProducts(@Query('page') page: string, @Query('limit') limit: string) {
     if (limit && page) {
       return this.productsDbService.getProducts(+page, +limit);
@@ -35,32 +36,33 @@ export class ProductsController {
 
   @Get(':id')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   getProductById(@Param('id') id: string) {
     return this.productsDbService.getProductById(id);
   }
 
   @Post()
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('image'))
   createProduct(
     @Body() product: CreateProductDto,
     @UploadedFile() file: Express.Multer.File,
+    @Req() req,
   ) {
-    return this.productsDbService.createProduct(product, file);
+    return this.productsDbService.createProduct(product, file, req.user);
   }
 
   @Put(':id')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   updateProduct(@Body() product: Partial<Product>, @Param('id') id: string) {
     return this.productsDbService.updateProduct(id, product);
   }
 
   @Delete(':id')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   deleteProduct(@Param('id') id: string) {
     return this.productsDbService.deleteProduct(id);
   }

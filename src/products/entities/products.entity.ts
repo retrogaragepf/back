@@ -1,5 +1,6 @@
 import { Categories } from 'src/categories/entities/Category.entity';
 import { Eras } from 'src/eras/entities/era.entity';
+import { Users } from 'src/users/entities/users.entity';
 import {
   Column,
   Entity,
@@ -34,6 +35,10 @@ export class Product {
 
   @Column({ type: 'datetime' })
   createdAt: Date;
+
+  @ManyToOne(() => Users, (user) => user.products, { eager: false })
+  @JoinColumn({ name: 'user_id' })
+  user: Users;
 
   @ManyToOne(() => Categories, (category) => category.products, { eager: true })
   @JoinColumn({ name: 'category_id' })
