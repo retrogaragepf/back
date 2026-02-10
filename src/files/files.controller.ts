@@ -13,9 +13,6 @@ import { FilesService } from './files.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { Roles } from 'src/decorators/roles.decorators';
-import { Role } from 'src/auth/enum/roles.enum';
 import { UpdateProductImageDto } from './dto/UpdateImageDto';
 
 @ApiTags('Files')
@@ -25,8 +22,7 @@ export class filesController {
 
   @Post('uploadImage/:id')
   @ApiBearerAuth('jwt')
-  @Roles(Role.Admin)
-  @UseGuards(AuthGuard, RolesGuard)
+  @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({

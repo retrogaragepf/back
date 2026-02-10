@@ -1,3 +1,5 @@
+import { Categories } from 'src/categories/entities/Category.entity';
+import { Eras } from 'src/eras/entities/era.entity';
 import {
   Column,
   Entity,
@@ -30,10 +32,13 @@ export class Product {
   })
   imgUrl: string;
 
+  @Column({ type: 'datetime' })
+  createdAt: Date;
+
   @ManyToOne(() => Categories, (category) => category.products, { eager: true })
   @JoinColumn({ name: 'category_id' })
   category: Categories;
 
-  @ManyToMany(() => OrderDetails, (orderDetails) => orderDetails.products)
-  orderDetails?: OrderDetails[];
+  @ManyToOne(() => Eras, (eras) => eras.products)
+  era: Eras;
 }

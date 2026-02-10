@@ -7,16 +7,16 @@ import {
   Post,
   Put,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ProductsDbService } from './productsDb.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { CreateProductDto } from './dto/products.dto';
 import { Product } from './entities/products.entity';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { Roles } from 'src/decorators/roles.decorators';
-import { Role } from 'src/auth/enum/roles.enum';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Products')
 @Controller('products')
@@ -42,16 +42,18 @@ export class ProductsController {
 
   @Post()
   @ApiBearerAuth('jwt')
-  @Roles(Role.Admin)
-  @UseGuards(AuthGuard, RolesGuard)
-  createProduct(@Body() product: CreateProductDto) {
-    return this.productsDbService.createProduct(product);
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('image'))
+  createProduct(
+    @Body() product: CreateProductDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.productsDbService.createProduct(product, file);
   }
 
   @Put(':id')
   @ApiBearerAuth('jwt')
-  @Roles(Role.Admin)
-  @UseGuards(AuthGuard, RolesGuard)
+  @UseGuards(AuthGuard)
   updateProduct(@Body() product: Partial<Product>, @Param('id') id: string) {
     return this.productsDbService.updateProduct(id, product);
   }

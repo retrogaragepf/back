@@ -1,14 +1,19 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/products.entity';
 import { Repository } from 'typeorm';
 import { CreateProductDto } from './dto/products.dto';
+import toStream from 'buffer-to-stream';
+import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
+import { Categories } from 'src/categories/entities/Category.entity';
 
 @Injectable()
 export class ProductsDbService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
+    private readonly categoriesRepository: Repository<Categories>,
+    @Inject('CLOUDINARY') private readonly cloudinaryClient: typeof cloudinary,
   ) {}
 
   async getProducts(page: number = 1, limit: number = 5): Promise<Product[]> {
@@ -24,7 +29,10 @@ export class ProductsDbService {
     return this.productsRepository.findOne({ where: { id } });
   }
 
-  async createProduct(dto: CreateProductDto): Promise<Product> {
+  async createProduct(
+    dto: CreateProductDto,
+    file: Express.Multer.File,
+  ): Promise<Product> {
     const category = await this.categoriesRepository.findOne({
       where: { id: dto.categoryId },
     });
@@ -33,8 +41,11 @@ export class ProductsDbService {
       throw new NotFoundException('Category not found');
     }
 
+    const imageUrl = await this.uploadToCloudinary(file);
+
     const product = this.productsRepository.create({
       ...dto,
+      imgUrl: imageUrl,
       category,
     });
 
@@ -51,5 +62,18 @@ export class ProductsDbService {
 
   async deleteProduct(id: string): Promise<void> {
     await this.productsRepository.delete(id);
+  }
+
+  private uploadToCloudinary(file: Express.Multer.File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const upload = this.cloudinaryClient.uploader.upload_stream(
+        { folder: 'products' },
+        (error, result: UploadApiResponse) => {
+          if (error) return reject(error);
+          resolve(result.secure_url);
+        },
+      );
+      toStream(file.buffer).pipe(upload);
+    });
   }
 }
