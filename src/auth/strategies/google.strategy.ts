@@ -6,6 +6,11 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(configService: ConfigService) {
+    console.log('GOOGLE_CLIENT_ID:', configService.get('GOOGLE_CLIENT_ID'));
+    const clientID = configService.get<string>('GOOGLE_CLIENT_ID');
+    if (!clientID) {
+      throw new Error('Missing GOOGLE_CLIENT_ID env variable');
+    }
     super({
       clientID: configService.get('GOOGLE_CLIENT_ID'),
       clientSecret: configService.get('GOOGLE_CLIENT_SECRET'),
