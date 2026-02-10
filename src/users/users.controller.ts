@@ -7,16 +7,17 @@ import {
   ParseUUIDPipe,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { Users } from './entities/users.entity';
 import { UpdateUserDto } from './dto/users.dto';
 import { Roles } from 'src/decorators/roles.decorator';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Role } from './roles.enum';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('users')
 export class UsersController {
@@ -25,7 +26,7 @@ export class UsersController {
   @ApiBearerAuth()
   @Get()
   @Roles(Role.Admin)
-  @UseGuards(AuthGuard, RolesGuard)
+  @UseGuards(RolesGuard)
   async getAllUsers(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -35,6 +36,12 @@ export class UsersController {
     const validPage = pageNum > 0 && !isNaN(pageNum) ? pageNum : 1;
     const validLimit = limitNum > 0 && !isNaN(limitNum) ? limitNum : 5;
     return await this.userService.getAllUsers(validPage, validLimit);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  getProfile(@Req() req) {
+    return req.user;
   }
 
   @Get(':id')
