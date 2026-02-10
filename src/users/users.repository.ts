@@ -37,21 +37,34 @@ export class UsersRepository {
     return await this.ormUsersRepository.findOneBy({ email, isActive: true });
   }
 
-  async addUser(newUserData: CreateUserDto): Promise<string> {
-    const savedUser = await this.ormUsersRepository.save(newUserData);
-    return savedUser.id;
+  async addUser(newUserData: CreateUserDto): Promise<Users> {
+    const user = this.ormUsersRepository.create({
+      name: newUserData.name,
+      email: newUserData.email,
+      password: newUserData.password,
+      provider: 'local',
+      isActive: true,
+      isAdmin: false,
+    });
+
+    return await this.ormUsersRepository.save(user);
   }
 
-  // async addUser(newUserData: CreateUserDto): Promise<string> {
-  //   const user = this.ormUsersRepository.create({
-  //     name: newUserData.name,
-  //     email: newUserData.email,
-  //     password: newUserData.password,
-  //   });
+  async addGoogleUser(data: {
+    name: string;
+    email: string;
+    providerId: string;
+  }): Promise<Users> {
+    const user = this.ormUsersRepository.create({
+      name: data.name,
+      email: data.email,
+      password: null,
+      provider: 'google',
+      providerId: data.providerId,
+    });
 
-  //   const savedUser = await this.ormUsersRepository.save(user);
-  //   return savedUser.id;
-  // }
+    return await this.ormUsersRepository.save(user);
+  }
 
   async updateUser(
     id: string,
