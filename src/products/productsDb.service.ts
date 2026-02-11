@@ -13,8 +13,12 @@ export class ProductsDbService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
+    @InjectRepository(Categories)
     private readonly categoriesRepository: Repository<Categories>,
-    @Inject('CLOUDINARY') private readonly cloudinaryClient: typeof cloudinary,
+    @InjectRepository(Users)
+    private readonly userRepository: Repository<Users>,
+    @Inject('CLOUDINARY')
+    private readonly cloudinaryClient: typeof cloudinary,
   ) {}
 
   async getProducts(page: number = 1, limit: number = 5): Promise<Product[]> {
