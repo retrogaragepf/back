@@ -11,9 +11,9 @@ import {
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { UpdateProductImageDto } from './dto/UpdateImageDto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @ApiTags('Files')
 @Controller('files')
@@ -22,7 +22,7 @@ export class filesController {
 
   @Post('uploadImage/:id')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({

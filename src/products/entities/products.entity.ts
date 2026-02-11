@@ -3,6 +3,7 @@ import { Eras } from 'src/eras/entities/era.entity';
 import { Users } from 'src/users/entities/users.entity';
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToMany,
@@ -33,7 +34,7 @@ export class Product {
   })
   imgUrl: string;
 
-  @Column({ type: 'datetime' })
+  @CreateDateColumn()
   createdAt: Date;
 
   @ManyToOne(() => Users, (user) => user.products, { eager: false })

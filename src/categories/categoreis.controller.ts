@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { CreateCategoryDto } from './dto/CreateCategory.DTO';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @ApiTags('Categories')
 @Controller('categories')
@@ -21,7 +21,7 @@ export class CategoriesController {
 
   @Post()
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   createCategory(@Body() category: CreateCategoryDto) {
     return this.categoriesService.saveCategories(category);
   }
