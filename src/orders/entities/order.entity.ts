@@ -7,7 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 
-@Entity('orders')
+@Entity('ORDERS')
 export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;

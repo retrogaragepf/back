@@ -11,7 +11,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-@Entity('products')
+@Entity('PRODUCTS')
 export class Product {
   @PrimaryGeneratedColumn('uuid')
   id?: string;
