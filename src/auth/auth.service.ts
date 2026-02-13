@@ -84,6 +84,7 @@ export class AuthService {
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
+      isBlocked: user.isBlocked,
     };
 
     return {

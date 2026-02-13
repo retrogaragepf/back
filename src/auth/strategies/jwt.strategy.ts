@@ -17,6 +17,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: payload.email,
       name: payload.name,
       isAdmin: payload.isAdmin,
+      isBlocked: payload.isBlocked,
       roles: payload.isAdmin ? ['Admin'] : ['user'],
     };
   }
