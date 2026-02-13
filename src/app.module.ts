@@ -15,7 +15,7 @@ import { ProductsModule } from './products/products.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env.development',
-      load: [typeOrmConfig], // ✅ ESTA ERA LA CLAVE
+      load: [typeOrmConfig],
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],

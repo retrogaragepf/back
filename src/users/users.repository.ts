@@ -46,7 +46,6 @@ export class UsersRepository {
       isActive: true,
       isAdmin: false,
     });
-
     return await this.ormUsersRepository.save(user);
   }
 
