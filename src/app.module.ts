@@ -10,6 +10,7 @@ import { typeOrmConfig } from './config/typeorm';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ProductsModule } from './products/products.module';
 import { CartModule } from './carts/cart.module';
+import { SeederModule } from './seeders/seeder.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { CartModule } from './carts/cart.module';
     AuthModule,
     ProductsModule,
     CartModule,
+    SeederModule,
   ],
   controllers: [AppController],
   providers: [AppService],
