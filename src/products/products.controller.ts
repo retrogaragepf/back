@@ -12,10 +12,13 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ProductsDbService } from './productsDb.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { NotBlockedGuard } from 'src/auth/guards/not-blocked.guard';
+
 import { CreateProductDto } from './dto/products.dto';
 import { Product } from './entities/products.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -53,7 +56,7 @@ export class ProductsController {
 
   @Post()
   @ApiBearerAuth('jwt')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, NotBlockedGuard)
   @UseInterceptors(FileInterceptor('image'))
   createProduct(
     @Body() product: CreateProductDto,
