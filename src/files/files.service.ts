@@ -18,11 +18,9 @@ export class FilesService {
       where: { id: productId },
     });
     if (!product) throw new NotFoundException('Producto no encontrado');
-
     const imageUrl = await this.uploadToCloudinary(file);
     product.imgUrl = imageUrl;
     await this.productRepo.save(product);
-
     return { message: 'Imagen actualizada', imgUrl: imageUrl };
   }
 

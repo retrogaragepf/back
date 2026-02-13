@@ -1,10 +1,7 @@
-import { Users } from 'src/users/entities/users.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
-  JoinColumn,
 } from 'typeorm';
 
 @Entity('orders')
