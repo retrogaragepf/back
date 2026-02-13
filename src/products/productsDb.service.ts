@@ -62,10 +62,14 @@ export class ProductsDbService {
     const imageUrl = await this.uploadToCloudinary(file);
 
     const product = this.productsRepository.create({
-      ...dto,
+      title: dto.title,
+      description: dto.description,
+      price: dto.price,
+      stock: dto.stock,
       imgUrl: imageUrl,
-      category,
-      user,
+      category: category,
+      era: era,
+      user: user,
       status: ProductStatus.PENDING,
     });
 
