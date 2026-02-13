@@ -3,11 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from './entities/users.entity';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/users.dto';
+import { Cart } from 'src/carts/entities/cart.entity';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class UsersRepository {
   constructor(
     @InjectRepository(Users) private ormUsersRepository: Repository<Users>,
+    @InjectRepository(Cart) private readonly cartsRepository: Repository<Cart>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async getAllUsers(
@@ -38,16 +42,23 @@ export class UsersRepository {
   }
 
   async addUser(newUserData: CreateUserDto): Promise<Users> {
-    const user = this.ormUsersRepository.create({
-      name: newUserData.name,
-      email: newUserData.email,
-      password: newUserData.password,
-      provider: 'local',
-      isActive: true,
-      isAdmin: false,
-    });
+    return await this.dataSource.transaction(async (manager) => {
+      const user = manager.create(Users, {
+        name: newUserData.name,
+        email: newUserData.email,
+        password: newUserData.password,
+        provider: 'local',
+        isActive: true,
+        isAdmin: false,
+      });
 
-    return await this.ormUsersRepository.save(user);
+      const savedUser = await manager.save(user);
+
+      const cart = manager.create(Cart, { user: savedUser });
+      await manager.save(cart);
+
+      return savedUser;
+    });
   }
 
   async addGoogleUser(data: {
@@ -61,9 +72,19 @@ export class UsersRepository {
       password: null,
       provider: 'google',
       providerId: data.providerId,
+      isActive: true,
+      isAdmin: false,
     });
 
-    return await this.ormUsersRepository.save(user);
+    const savedUser = await this.ormUsersRepository.save(user);
+
+    const cart = this.cartsRepository.create({
+      user: savedUser,
+    });
+
+    await this.cartsRepository.save(cart);
+
+    return savedUser;
   }
 
   async updateUser(

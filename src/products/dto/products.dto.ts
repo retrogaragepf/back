@@ -15,7 +15,7 @@ export class CreateProductDto {
     description: 'Name of the product. Must be a non-empty string.',
     example: 'Shaving Cream',
   })
-  name: string;
+  title: string;
 
   @IsNotEmpty({ message: 'Product description is required.' })
   @IsString({ message: 'Product description must be a string.' })
@@ -50,6 +50,9 @@ export class CreateProductDto {
     example: 'https://example.com/images/shaving-cream.jpg',
   })
   imgUrl: string;
+
+  @IsUUID()
+  erasId: string;
 
   @IsNotEmpty({ message: 'Category ID is required.' })
   @IsUUID('4', { message: 'Category ID must be a valid UUID.' })

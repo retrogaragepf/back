@@ -9,10 +9,10 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
-  // @Get('seeder')
-  // seeder() {
-  //   return this.categoriesService.seeder();
-  // }
+  @Get('seeder')
+  seeder() {
+    return this.categoriesService.seeder();
+  }
 
   @Get()
   getCategories() {
