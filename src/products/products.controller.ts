@@ -35,6 +35,11 @@ export class ProductsController {
     );
   }
 
+  // @Get('my')
+  // @ApiBearerAuth("jwt")
+  // @UseGuards(JwtAuthGuard)
+  // getMyProducts()
+
   @Get(':id')
   @ApiBearerAuth('jwt')
   @UseGuards(JwtAuthGuard)
