@@ -7,6 +7,8 @@ import toStream from 'buffer-to-stream';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import { Categories } from 'src/categories/entities/Category.entity';
 import { Users } from 'src/users/entities/users.entity';
+import { ProductStatus } from './product-status.enum';
+import { Eras } from 'src/eras/entities/era.entity';
 
 @Injectable()
 export class ProductsDbService {
@@ -17,6 +19,8 @@ export class ProductsDbService {
     private readonly categoriesRepository: Repository<Categories>,
     @InjectRepository(Users)
     private readonly userRepository: Repository<Users>,
+    @InjectRepository(Eras)
+    private readonly erasRepository: Repository<Eras>,
     @Inject('CLOUDINARY')
     private readonly cloudinaryClient: typeof cloudinary,
   ) {}
@@ -47,6 +51,14 @@ export class ProductsDbService {
       throw new NotFoundException('Category not found');
     }
 
+    const era = await this.erasRepository.findOne({
+      where: { id: dto.erasId },
+    });
+
+    if (!era) {
+      throw new NotFoundException('Era not found');
+    }
+
     const imageUrl = await this.uploadToCloudinary(file);
 
     const product = this.productsRepository.create({
@@ -54,6 +66,7 @@ export class ProductsDbService {
       imgUrl: imageUrl,
       category,
       user,
+      status: ProductStatus.PENDING,
     });
 
     return await this.productsRepository.save(product);

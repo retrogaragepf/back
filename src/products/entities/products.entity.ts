@@ -8,8 +8,11 @@ import {
   JoinColumn,
   ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { ProductStatus } from '../product-status.enum';
+import { CartItem } from 'src/cartItem/entities/cartItem.entity';
 
 @Entity('PRODUCTS')
 export class Product {
@@ -37,9 +40,19 @@ export class Product {
   @CreateDateColumn()
   createdAt: Date;
 
+  @Column({
+    type: 'enum',
+    enum: ProductStatus,
+    default: ProductStatus.PENDING,
+  })
+  status: ProductStatus;
+
   @ManyToOne(() => Users, (user) => user.products, { eager: false })
   @JoinColumn({ name: 'user_id' })
   user: Users;
+
+  @OneToMany(() => CartItem, (cartItem) => cartItem.product)
+  cartItem: CartItem[];
 
   @ManyToOne(() => Categories, (category) => category.products, { eager: true })
   @JoinColumn({ name: 'category_id' })
