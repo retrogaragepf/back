@@ -1,8 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, In } from 'typeorm';
 import { Eras } from './entities/era.entity';
-import { Repository } from 'typeorm';
-import * as data from '../data.json';
 
 @Injectable()
 export class ErasService {
@@ -10,15 +9,45 @@ export class ErasService {
     @InjectRepository(Eras)
     private readonly erasRepository: Repository<Eras>,
   ) {}
-  async seeder() {
-    const eras = new Set(data.map((item) => item.era));
-    const erasArray = Array.from(eras);
-    const erasData = erasArray.map((era) => ({
-      name: era,
-    }));
 
-    await this.erasRepository.upsert(erasData, ['name']);
+  //  Obtener todas las eras
+  async getEras(): Promise<Eras[]> {
+    return this.erasRepository.find({
+      order: { name: 'ASC' },
+    });
+  }
 
-    return 'Eras Seeded Successfully';
+  //  Crear una sola era
+  async createEra(name: string): Promise<Eras> {
+    const existing = await this.erasRepository.findOne({
+      where: { name },
+    });
+
+    if (existing) {
+      throw new BadRequestException('Era already exists');
+    }
+
+    const era = this.erasRepository.create({ name });
+    return this.erasRepository.save(era);
+  }
+
+  //  Agregar múltiples eras (ideal para seeder)
+  async addEras(eras: { name: string }[]): Promise<Eras[]> {
+    const names = eras.map((e) => e.name);
+
+    // Buscar cuáles ya existen
+    const existing = await this.erasRepository.find({
+      where: { name: In(names) },
+    });
+
+    const existingNames = existing.map((e) => e.name);
+
+    // Filtrar solo las que no existen
+    const newEras = eras.filter((era) => !existingNames.includes(era.name));
+
+    if (!newEras.length) return existing;
+
+    const created = this.erasRepository.create(newEras);
+    return this.erasRepository.save(created);
   }
 }
