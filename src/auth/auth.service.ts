@@ -73,6 +73,7 @@ export class AuthService {
         name: name || '',
         providerId: googleId,
       });
+      await this.emailService.sendWelcomeEmail(email, name || 'User');
     }
     return this.generateJwt(user);
   }
