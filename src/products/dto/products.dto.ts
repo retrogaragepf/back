@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsNotEmpty,
   IsNumber,
@@ -25,6 +26,7 @@ export class CreateProductDto {
   })
   description: string;
 
+  @Type(() => Number)
   @IsNotEmpty({ message: 'Product price is required.' })
   @IsNumber({}, { message: 'Price must be a number.' })
   @IsPositive({ message: 'Price must be a positive number.' })
@@ -34,6 +36,7 @@ export class CreateProductDto {
   })
   price: number;
 
+  @Type(() => Number)
   @IsNotEmpty({ message: 'Product stock is required.' })
   @IsNumber({}, { message: 'Stock must be a number.' })
   @Min(0, { message: 'Stock must be zero or greater.' })
