@@ -26,12 +26,10 @@ export class ProductsDbService {
   ) {}
 
   async getProducts(page: number = 1, limit: number = 5): Promise<Product[]> {
-    const products = await this.productsRepository.find();
-
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-
-    return products.slice(startIndex, endIndex);
+    return this.productsRepository.find({
+      skip: (page - 1) * limit,
+      take: limit,
+    });
   }
 
   async getProductById(id: string): Promise<Product | null> {
@@ -59,14 +57,14 @@ export class ProductsDbService {
       throw new NotFoundException('Era not found');
     }
 
-    const imageUrl = await this.uploadToCloudinary(file);
+    const image = await this.uploadToCloudinary(file);
 
     const product = this.productsRepository.create({
       title: dto.title,
       description: dto.description,
       price: dto.price,
       stock: dto.stock,
-      imgUrl: imageUrl,
+      imgUrl: image,
       category: category,
       era: era,
       user: user,
