@@ -43,14 +43,6 @@ export class CreateProductDto {
   })
   stock: number;
 
-  @IsNotEmpty({ message: 'Product image URL is required.' })
-  @IsString({ message: 'Image URL must be a string.' })
-  @ApiProperty({
-    description: 'URL of the product image.',
-    example: 'https://example.com/images/shaving-cream.jpg',
-  })
-  imgUrl: string;
-
   @IsUUID()
   erasId: string;
 
