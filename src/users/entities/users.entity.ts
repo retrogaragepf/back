@@ -44,6 +44,9 @@ export class Users {
   @Column({ default: false })
   isAdmin: boolean;
 
+  @Column({ default: false })
+  isBlocked: boolean;
+
   @Column({ default: true, name: 'is_active' })
   isActive: boolean;
 

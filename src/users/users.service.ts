@@ -23,4 +23,12 @@ export class UsersService {
   async deleteUser(id: string) {
     return await this.usersRepository.deleteUser(id);
   }
+
+  async blockUser(id: string) {
+    return await this.usersRepository.blockUser(id);
+  }
+
+  async unblockUser(id: string) {
+    return await this.usersRepository.unblockUser(id);
+  }
 }

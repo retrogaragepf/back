@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -18,6 +19,9 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CreateProductDto } from './dto/products.dto';
 import { Product } from './entities/products.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Roles } from 'src/decorators/roles.decorator';
+import { Role } from 'src/users/roles.enum';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @ApiTags('Products')
 @Controller('products')
@@ -71,5 +75,21 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard)
   deleteProduct(@Param('id') id: string) {
     return this.productsDbService.deleteProduct(id);
+  }
+
+  @ApiBearerAuth()
+  @Roles(Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch(':id/approve')
+  async approveProduct(@Param('id') id: string) {
+    return this.productsDbService.approveProduct(id);
+  }
+
+  @ApiBearerAuth()
+  @Roles(Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch(':id/reject')
+  async rejectProduct(@Param('id') id: string) {
+    return this.productsDbService.rejectProduct(id);
   }
 }
