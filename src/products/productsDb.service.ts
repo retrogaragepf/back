@@ -100,4 +100,17 @@ export class ProductsDbService {
       toStream(file.buffer).pipe(upload);
     });
   }
+  async approveProduct(id: string): Promise<Product> {
+    const product = await this.getProductById(id);
+    if (!product) throw new NotFoundException('Product not found');
+    product.status = ProductStatus.APPROVED;
+    return await this.productsRepository.save(product);
+  }
+
+  async rejectProduct(id: string): Promise<Product> {
+    const product = await this.getProductById(id);
+    if (!product) throw new NotFoundException('Product not found');
+    product.status = ProductStatus.REJECTED;
+    return await this.productsRepository.save(product);
+  }
 }

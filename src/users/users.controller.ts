@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Put,
   Query,
   Req,
@@ -26,16 +27,24 @@ export class UsersController {
   @ApiBearerAuth()
   @Get()
   @Roles(Role.Admin)
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async getAllUsers(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-  ): Promise<Omit<Users, 'password'>[]> {
+  ) {
     const pageNum = Number(page);
     const limitNum = Number(limit);
     const validPage = pageNum > 0 && !isNaN(pageNum) ? pageNum : 1;
     const validLimit = limitNum > 0 && !isNaN(limitNum) ? limitNum : 5;
-    return await this.userService.getAllUsers(validPage, validLimit);
+    const users = await this.userService.getAllUsers(validPage, validLimit);
+    return users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.isAdmin ? 'Admin' : 'user',
+      isBlocked: user.isBlocked,
+      createdAt: user.createdAt,
+    }));
   }
 
   @UseGuards(JwtAuthGuard)
@@ -62,5 +71,21 @@ export class UsersController {
   @Delete(':id')
   async deleteUser(@Param('id', ParseUUIDPipe) id: string) {
     return await this.userService.deleteUser(id);
+  }
+
+  @ApiBearerAuth()
+  @Roles(Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch(':id/block')
+  async blockUser(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.userService.blockUser(id);
+  }
+
+  @ApiBearerAuth()
+  @Roles(Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch(':id/unblock')
+  async unblockUser(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.userService.unblockUser(id);
   }
 }

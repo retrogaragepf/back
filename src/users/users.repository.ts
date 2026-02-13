@@ -113,4 +113,19 @@ export class UsersRepository {
       id: foundUser.id,
     };
   }
+  async blockUser(id: string): Promise<{ id: string; isBlocked: true }> {
+    const user = await this.ormUsersRepository.findOneBy({ id });
+    if (!user) throw new NotFoundException(`No existe usuario con id ${id}`);
+    user.isBlocked = true;
+    await this.ormUsersRepository.save(user);
+    return { id: user.id, isBlocked: true };
+  }
+
+  async unblockUser(id: string): Promise<{ id: string; isBlocked: false }> {
+    const user = await this.ormUsersRepository.findOneBy({ id });
+    if (!user) throw new NotFoundException(`No existe usuario con id ${id}`);
+    user.isBlocked = false;
+    await this.ormUsersRepository.save(user);
+    return { id: user.id, isBlocked: false };
+  }
 }
