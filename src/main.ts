@@ -22,7 +22,15 @@ async function bootstrap() {
       'Back para una aplicación de E-commerce, desarrollada con NestJS, TypeORM y PostgreSQL. Incluye autenticación JWT, gestión de usuarios, productos, categorías y órdenes.',
     )
     .setVersion('1.0.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        in: 'header',
+      },
+      'jwt',
+    )
     .addServer('http://localhost:3002')
     .addServer('https://back-0o27.onrender.com')
     .build();

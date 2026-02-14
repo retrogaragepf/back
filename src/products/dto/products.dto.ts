@@ -47,13 +47,16 @@ export class CreateProductDto {
   stock: number;
 
   @IsUUID()
+  @ApiProperty({
+    example: '44955e75-e13f-4c34-90b0-fc5f818ab781',
+  })
   erasId: string;
 
   @IsNotEmpty({ message: 'Category ID is required.' })
   @IsUUID('4', { message: 'Category ID must be a valid UUID.' })
   @ApiProperty({
     description: 'UUID of the product category.',
-    example: '4781ec01-d206-4f34-900d-c4e840dd0ff4',
+    example: '0ee8f77a-f74e-4b19-871c-f4a89d37352f',
   })
   categoryId: string;
 }
