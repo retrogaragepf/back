@@ -15,7 +15,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ProductsDbService } from './productsDb.service';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { NotBlockedGuard } from 'src/auth/guards/not-blocked.guard';
 
@@ -48,16 +48,32 @@ export class ProductsController {
   // getMyProducts()
 
   @Get(':id')
-  @ApiBearerAuth('jwt')
-  @UseGuards(JwtAuthGuard)
   getProductById(@Param('id') id: string) {
     return this.productsDbService.getProductById(id);
   }
 
-  @Post()
   @ApiBearerAuth('jwt')
-  @UseGuards(JwtAuthGuard, NotBlockedGuard)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        description: { type: 'string' },
+        price: { type: 'number' },
+        stock: { type: 'number' },
+        categoryId: { type: 'string' },
+        eraId: { type: 'string' },
+        image: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('image'))
+  @Post()
   createProduct(
     @Body() product: CreateProductDto,
     @UploadedFile() file: Express.Multer.File,
@@ -80,7 +96,7 @@ export class ProductsController {
     return this.productsDbService.deleteProduct(id);
   }
 
-  @ApiBearerAuth()
+  @ApiBearerAuth('jwt')
   @Roles(Role.Admin)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id/approve')
@@ -88,7 +104,7 @@ export class ProductsController {
     return this.productsDbService.approveProduct(id);
   }
 
-  @ApiBearerAuth()
+  @ApiBearerAuth('jwt')
   @Roles(Role.Admin)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id/reject')
