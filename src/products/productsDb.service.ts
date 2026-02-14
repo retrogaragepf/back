@@ -27,13 +27,23 @@ export class ProductsDbService {
 
   async getProducts(page: number = 1, limit: number = 5): Promise<Product[]> {
     return this.productsRepository.find({
+      relations: ['user'],
       skip: (page - 1) * limit,
       take: limit,
     });
   }
 
-  async getProductById(id: string): Promise<Product | null> {
-    return this.productsRepository.findOne({ where: { id } });
+  async getProductById(id: string): Promise<Product> {
+    const product = await this.productsRepository.findOne({
+      where: { id },
+      relations: ['user', 'category', 'era'],
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return product;
   }
 
   async getMyProducts(user: Users): Promise<Product[]> {
