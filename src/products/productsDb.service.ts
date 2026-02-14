@@ -7,6 +7,8 @@ import toStream from 'buffer-to-stream';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import { Categories } from 'src/categories/entities/Category.entity';
 import { Users } from 'src/users/entities/users.entity';
+import { ProductStatus } from './product-status.enum';
+import { Eras } from 'src/eras/entities/era.entity';
 
 @Injectable()
 export class ProductsDbService {
@@ -17,21 +19,41 @@ export class ProductsDbService {
     private readonly categoriesRepository: Repository<Categories>,
     @InjectRepository(Users)
     private readonly userRepository: Repository<Users>,
+    @InjectRepository(Eras)
+    private readonly erasRepository: Repository<Eras>,
     @Inject('CLOUDINARY')
     private readonly cloudinaryClient: typeof cloudinary,
   ) {}
 
   async getProducts(page: number = 1, limit: number = 5): Promise<Product[]> {
-    const products = await this.productsRepository.find();
-
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-
-    return products.slice(startIndex, endIndex);
+    return this.productsRepository.find({
+      relations: ['user'],
+      skip: (page - 1) * limit,
+      take: limit,
+    });
   }
 
-  async getProductById(id: string): Promise<Product | null> {
-    return this.productsRepository.findOne({ where: { id } });
+  async getProductById(id: string): Promise<Product> {
+    const product = await this.productsRepository.findOne({
+      where: { id },
+      relations: ['user', 'category', 'era'],
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return product;
+  }
+
+  async getMyProducts(user: Users): Promise<Product[]> {
+    return this.productsRepository.find({
+      where: {
+        user: { id: user.id },
+      },
+      relations: ['category', 'era'],
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async createProduct(
@@ -47,13 +69,26 @@ export class ProductsDbService {
       throw new NotFoundException('Category not found');
     }
 
-    const imageUrl = await this.uploadToCloudinary(file);
+    const era = await this.erasRepository.findOne({
+      where: { id: dto.erasId },
+    });
+
+    if (!era) {
+      throw new NotFoundException('Era not found');
+    }
+
+    const image = await this.uploadToCloudinary(file);
 
     const product = this.productsRepository.create({
-      ...dto,
-      imgUrl: imageUrl,
-      category,
-      user,
+      title: dto.title,
+      description: dto.description,
+      price: dto.price,
+      stock: dto.stock,
+      imgUrl: image,
+      category: category,
+      era: era,
+      user: user,
+      status: ProductStatus.PENDING,
     });
 
     return await this.productsRepository.save(product);
@@ -82,5 +117,18 @@ export class ProductsDbService {
       );
       toStream(file.buffer).pipe(upload);
     });
+  }
+  async approveProduct(id: string): Promise<Product> {
+    const product = await this.getProductById(id);
+    if (!product) throw new NotFoundException('Product not found');
+    product.status = ProductStatus.APPROVED;
+    return await this.productsRepository.save(product);
+  }
+
+  async rejectProduct(id: string): Promise<Product> {
+    const product = await this.getProductById(id);
+    if (!product) throw new NotFoundException('Product not found');
+    product.status = ProductStatus.REJECTED;
+    return await this.productsRepository.save(product);
   }
 }

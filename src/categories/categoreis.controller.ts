@@ -1,28 +1,24 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { CategoriesService } from './categories.service';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CreateCategoryDto } from './dto/CreateCategory.DTO';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CategoriesService } from './categories.service';
 
 @ApiTags('Categories')
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
-  // @Get('seeder')
-  // seeder() {
-  //   return this.categoriesService.seeder();
-  // }
-
+  // 🔹 Obtener todas las categorías
   @Get()
   getCategories() {
     return this.categoriesService.getCategories();
   }
 
+  // 🔹 Crear una categoría (protegido)
   @Post()
   @ApiBearerAuth('jwt')
   @UseGuards(JwtAuthGuard)
-  createCategory(@Body() category: CreateCategoryDto) {
-    return this.categoriesService.saveCategories(category);
+  createCategory(@Body('name') name: string) {
+    return this.categoriesService.createCategory(name);
   }
 }

@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsNotEmpty,
   IsNumber,
@@ -15,7 +16,7 @@ export class CreateProductDto {
     description: 'Name of the product. Must be a non-empty string.',
     example: 'Shaving Cream',
   })
-  name: string;
+  title: string;
 
   @IsNotEmpty({ message: 'Product description is required.' })
   @IsString({ message: 'Product description must be a string.' })
@@ -25,6 +26,7 @@ export class CreateProductDto {
   })
   description: string;
 
+  @Type(() => Number)
   @IsNotEmpty({ message: 'Product price is required.' })
   @IsNumber({}, { message: 'Price must be a number.' })
   @IsPositive({ message: 'Price must be a positive number.' })
@@ -34,6 +36,7 @@ export class CreateProductDto {
   })
   price: number;
 
+  @Type(() => Number)
   @IsNotEmpty({ message: 'Product stock is required.' })
   @IsNumber({}, { message: 'Stock must be a number.' })
   @Min(0, { message: 'Stock must be zero or greater.' })
@@ -43,19 +46,17 @@ export class CreateProductDto {
   })
   stock: number;
 
-  @IsNotEmpty({ message: 'Product image URL is required.' })
-  @IsString({ message: 'Image URL must be a string.' })
+  @IsUUID()
   @ApiProperty({
-    description: 'URL of the product image.',
-    example: 'https://example.com/images/shaving-cream.jpg',
+    example: '44955e75-e13f-4c34-90b0-fc5f818ab781',
   })
-  imgUrl: string;
+  erasId: string;
 
   @IsNotEmpty({ message: 'Category ID is required.' })
   @IsUUID('4', { message: 'Category ID must be a valid UUID.' })
   @ApiProperty({
     description: 'UUID of the product category.',
-    example: '4781ec01-d206-4f34-900d-c4e840dd0ff4',
+    example: '0ee8f77a-f74e-4b19-871c-f4a89d37352f',
   })
   categoryId: string;
 }

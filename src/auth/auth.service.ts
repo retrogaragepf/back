@@ -17,7 +17,7 @@ export class AuthService {
     private readonly usersRepository: UsersRepository,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
-  ) { }
+  ) {}
 
   async signIn(email: string, password: string) {
     const user = await this.usersRepository.getUserByEmail(email);
@@ -79,11 +79,13 @@ export class AuthService {
   }
 
   private generateJwt(user: Users) {
+    console.log('LOGIN SECRET (AuthService):', process.env.JWT_SECRET);
     const payload = {
       id: user.id,
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
+      isBlocked: user.isBlocked,
     };
 
     return {
