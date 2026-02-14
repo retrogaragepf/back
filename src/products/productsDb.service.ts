@@ -36,6 +36,16 @@ export class ProductsDbService {
     return this.productsRepository.findOne({ where: { id } });
   }
 
+  async getMyProducts(user: Users): Promise<Product[]> {
+    return this.productsRepository.find({
+      where: {
+        user: { id: user.id },
+      },
+      relations: ['category', 'era'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   async createProduct(
     dto: CreateProductDto,
     file: Express.Multer.File,
