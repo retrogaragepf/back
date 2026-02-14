@@ -43,16 +43,16 @@ export class ProductsController {
     );
   }
 
-  @Get(':id')
-  getProductById(@Param('id') id: string) {
-    return this.productsDbService.getProductById(id);
-  }
-
   @Get('my-products')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   getMyProducts(@Req() req: Request) {
     return this.productsDbService.getMyProducts(req.user as Users);
+  }
+
+  @Get(':id')
+  getProductById(@Param('id') id: string) {
+    return this.productsDbService.getProductById(id);
   }
 
   @ApiConsumes('multipart/form-data')
