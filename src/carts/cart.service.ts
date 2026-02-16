@@ -72,6 +72,7 @@ export class CartService {
         cart,
         product,
         quantity: dto.quantity,
+        priceAtMoment: Number(product.price),
       });
 
       return await manager.save(newItem);
