@@ -11,6 +11,7 @@ import { Product } from '../products/entities/products.entity';
 import { AddToCartDto } from './dto/cart.dto';
 import { DataSource } from 'typeorm';
 import { ProductStatus } from 'src/products/product-status.enum';
+import { Users } from 'src/users/entities/users.entity';
 
 @Injectable()
 export class CartService {
@@ -46,13 +47,21 @@ export class CartService {
       }
 
       let cart = await manager.findOne(Cart, {
-        where: { user: { id: userId } },
+        where: {
+          user: { id: userId },
+        },
       });
 
       if (!cart) {
-        cart = manager.create(Cart, {
-          user: { id: userId },
+        const user = await manager.findOne(Users, {
+          where: { id: userId },
         });
+
+        if (!user) {
+          throw new NotFoundException('User not found');
+        }
+
+        cart = manager.create(Cart, { user });
         cart = await manager.save(cart);
       }
 
@@ -71,15 +80,14 @@ export class CartService {
         }
 
         item.quantity = newQuantity;
-
         return await manager.save(item);
       }
 
       const newItem = manager.create(CartItem, {
         quantity: dto.quantity,
         priceAtMoment: Number(product.price),
-        cart: cart,
-        product: product,
+        cart,
+        product,
       });
 
       return await manager.save(newItem);
