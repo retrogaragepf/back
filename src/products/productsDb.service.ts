@@ -25,11 +25,9 @@ export class ProductsDbService {
     private readonly cloudinaryClient: typeof cloudinary,
   ) {}
 
-  async getProducts(page: number = 1, limit: number = 5): Promise<Product[]> {
+  async getProducts(): Promise<Product[]> {
     return this.productsRepository.find({
-      relations: ['user'],
-      skip: (page - 1) * limit,
-      take: limit,
+      relations: ['user', 'category', 'era'],
     });
   }
 

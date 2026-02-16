@@ -33,14 +33,8 @@ export class ProductsController {
   constructor(private readonly productsDbService: ProductsDbService) {}
 
   @Get()
-  getProducts(@Query('page') page: string, @Query('limit') limit: string) {
-    if (limit && page) {
-      return this.productsDbService.getProducts(+page, +limit);
-    }
-    return this.productsDbService.getProducts(
-      Number(page) || 1,
-      Number(limit) || 5,
-    );
+  getProducts() {
+    return this.productsDbService.getProducts();
   }
 
   @Get('my-products')
