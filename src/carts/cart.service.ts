@@ -31,7 +31,6 @@ export class CartService {
     return await this.dataSource.transaction(async (manager) => {
       const product = await manager.findOne(Product, {
         where: { id: dto.productId, status: ProductStatus.APPROVED },
-        lock: { mode: 'pessimistic_write' },
       });
 
       if (!product) {
