@@ -29,14 +29,8 @@ export class UsersController {
   @Roles(Role.Admin)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async getAllUsers(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
   ) {
-    const pageNum = Number(page);
-    const limitNum = Number(limit);
-    const validPage = pageNum > 0 && !isNaN(pageNum) ? pageNum : 1;
-    const validLimit = limitNum > 0 && !isNaN(limitNum) ? limitNum : 5;
-    const users = await this.userService.getAllUsers(validPage, validLimit);
+    const users = await this.userService.getAllUsers();
     return users.map((user) => ({
       id: user.id,
       name: user.name,
