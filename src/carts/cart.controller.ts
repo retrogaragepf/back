@@ -27,14 +27,14 @@ export class CartController {
 
   @Post()
   async addToCart(@Body() dto: AddToCartDto, @Req() req: Request) {
-    const user = req.user as Users;
-    return this.cartService.addToCart(user.id, dto);
+    const userId = (req.user as any).sub;
+    return this.cartService.addToCart(userId, dto);
   }
 
   @Get()
   async getCart(@Req() req: Request) {
-    const user = req.user as Users;
-    return this.cartService.getCart(user.id);
+    const userId = (req.user as any).sub;
+    return this.cartService.getCart(userId);
   }
 
   @Patch('item/:id')
