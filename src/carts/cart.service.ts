@@ -48,7 +48,6 @@ export class CartService {
 
       let cart = await manager.findOne(Cart, {
         where: { user: { id: userId } },
-        relations: ['user'],
       });
 
       if (!cart) {
@@ -63,7 +62,6 @@ export class CartService {
           cart: { id: cart.id },
           product: { id: product.id },
         },
-        relations: ['cart', 'product'],
       });
 
       if (item) {
