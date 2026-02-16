@@ -6,10 +6,8 @@ import { Users } from './entities/users.entity';
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
   async getAllUsers(
-    page: number,
-    limit: number,
   ): Promise<Omit<Users, 'password'>[]> {
-    return await this.usersRepository.getAllUsers(page, limit);
+    return await this.usersRepository.getAllUsers();
   }
 
   async getUserById(id: string): Promise<Omit<Users, 'password' | 'isAdmin'>> {

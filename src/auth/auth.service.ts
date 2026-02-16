@@ -79,7 +79,6 @@ export class AuthService {
   }
 
   private generateJwt(user: Users) {
-    console.log('LOGIN SECRET (AuthService):', process.env.JWT_SECRET);
     const payload = {
       id: user.id,
       name: user.name,
