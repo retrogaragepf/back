@@ -24,45 +24,84 @@ export class CartService {
   ) {}
 
   async addToCart(userId: string, dto: AddToCartDto) {
-    const product = await this.productsRepository.findOne({
-      where: { id: dto.productId },
+    return await this.cartsRepository.manager.transaction(async (manager) => {
+      const product = await manager.findOne(Product, {
+        where: { id: dto.productId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
+
+      let cart = await manager.findOne(Cart, {
+        where: { user: { id: userId } },
+      });
+
+      if (!cart) {
+        cart = manager.create(Cart, {
+          user: { id: userId },
+        });
+
+        cart = await manager.save(cart);
+      }
+
+      let existingItem = await manager.findOne(CartItem, {
+        where: {
+          cart: { id: cart.id },
+          product: { id: product.id },
+        },
+      });
+
+      if (existingItem) {
+        const newQuantity = existingItem.quantity + dto.quantity;
+
+        if (newQuantity > product.stock) {
+          throw new BadRequestException('Not enough stock');
+        }
+
+        existingItem.quantity = newQuantity;
+        return await manager.save(existingItem);
+      }
+
+      if (dto.quantity > product.stock) {
+        throw new BadRequestException('Not enough stock');
+      }
+
+      const newItem = manager.create(CartItem, {
+        cart,
+        product,
+        quantity: dto.quantity,
+      });
+
+      return await manager.save(newItem);
     });
+  }
 
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
+  async updateItemQuantity(itemId: string, quantity: number) {
+    return await this.cartsRepository.manager.transaction(async (manager) => {
+      const item = await manager.findOne(CartItem, {
+        where: { id: itemId },
+        relations: ['product'],
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    if (product.stock < dto.quantity) {
-      throw new BadRequestException('Not enough stock');
-    }
+      if (!item) {
+        throw new NotFoundException('Cart item not found');
+      }
 
-    const cart = await this.cartsRepository.findOne({
-      where: { user: { id: userId } },
+      if (quantity <= 0) {
+        await manager.delete(CartItem, itemId);
+        return { message: 'Item removed' };
+      }
+
+      if (quantity > item.product.stock) {
+        throw new BadRequestException('Not enough stock');
+      }
+
+      item.quantity = quantity;
+      return await manager.save(item);
     });
-
-    if (!cart) {
-      throw new NotFoundException('Cart not found');
-    }
-
-    const existingItem = await this.cartItemsRepository.findOne({
-      where: {
-        cart: { id: cart.id },
-        product: { id: dto.productId },
-      },
-    });
-
-    if (existingItem) {
-      existingItem.quantity += dto.quantity;
-      return await this.cartItemsRepository.save(existingItem);
-    }
-
-    const newItem = this.cartItemsRepository.create({
-      cart,
-      product,
-      quantity: dto.quantity,
-    });
-
-    return await this.cartItemsRepository.save(newItem);
   }
 
   async getCart(userId: string) {
@@ -73,6 +112,12 @@ export class CartService {
   }
 
   async removeItem(itemId: string) {
-    return this.cartItemsRepository.delete(itemId);
+    const result = await this.cartItemsRepository.delete(itemId);
+
+    if (result.affected === 0) {
+      throw new NotFoundException('Cart item not found');
+    }
+
+    return { message: 'Item removed successfully' };
   }
 }
