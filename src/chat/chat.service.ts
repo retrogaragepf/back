@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,6 +13,7 @@ import { ConversationParticipant } from './entities/conversation-participant.ent
 import { CreateConversationDto } from './dto/conversation.dto';
 import { Users } from 'src/users/entities/users.entity';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { ChatGateway } from './chat.gateway';
 
 @Injectable()
 export class ChatService {
@@ -19,6 +22,8 @@ export class ChatService {
     private conversationRepo: Repository<Conversation>,
     @InjectRepository(Message)
     private messageRepo: Repository<Message>,
+    @Inject(forwardRef(() => ChatGateway))
+    private chatGateway: ChatGateway,
     @InjectRepository(ConversationParticipant)
     private participantRepo: Repository<ConversationParticipant>,
     @InjectRepository(Users)
@@ -61,19 +66,26 @@ export class ChatService {
   }
 
   async createMessage(senderId: string, dto: CreateMessageDto) {
+    const { conversationId, content } = dto;
     const isParticipant = await this.isUserInConversation(
       senderId,
-      dto.conversationId,
+      conversationId,
     );
     if (!isParticipant) {
       throw new ForbiddenException('No perteneces a esta conversación');
     }
     const message = this.messageRepo.create({
-      content: dto.content,
-      conversation: { id: dto.conversationId } as Conversation,
+      content,
+      conversation: { id: conversationId } as Conversation,
       sender: { id: senderId } as Users,
     });
-    return this.messageRepo.save(message);
+    const savedMessage = await this.messageRepo.save(message);
+    const fullMessage = await this.messageRepo.findOne({
+      where: { id: savedMessage.id },
+      relations: ['sender'],
+    });
+    this.chatGateway.server.to(conversationId).emit('newMessage', fullMessage);
+    return fullMessage;
   }
 
   async isUserInConversation(userId: string, conversationId: string) {
