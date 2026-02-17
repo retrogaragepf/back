@@ -1,4 +1,5 @@
 import { Cart } from 'src/carts/entities/cart.entity';
+import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/products.entity';
 import {
   Column,
@@ -58,4 +59,7 @@ export class Users {
 
   @OneToMany(() => Product, (product) => product.user)
   products: Product[];
+
+  @OneToMany(() => Order, (order) => order.user)
+  orders: Order[];
 }

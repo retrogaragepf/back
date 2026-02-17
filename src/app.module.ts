@@ -11,6 +11,7 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ProductsModule } from './products/products.module';
 import { CartModule } from './carts/cart.module';
 import { SeederModule } from './seeders/seeder.module';
+import { StripeModule } from './stripe/stripe.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { SeederModule } from './seeders/seeder.module';
     ProductsModule,
     CartModule,
     SeederModule,
+    StripeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
