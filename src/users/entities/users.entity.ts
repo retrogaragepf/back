@@ -24,6 +24,7 @@ export class Users {
     type: 'varchar',
     length: 60,
     nullable: true,
+    select: false,
   })
   password: string | null;
 
