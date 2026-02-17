@@ -50,9 +50,8 @@ export class CartService {
       }
 
       let cart = await manager.findOne(Cart, {
-        where: {
-          user: { id: userId },
-        },
+        where: { user: { id: userId } },
+        relations: ['user'],
       });
 
       if (!cart) {
@@ -68,12 +67,12 @@ export class CartService {
         cart = await manager.save(cart);
       }
 
-      let item = await manager.findOne(CartItem, {
-        where: {
-          cart: { id: cart.id },
-          product: { id: product.id },
-        },
-      });
+      let item = await manager
+        .createQueryBuilder(CartItem, 'item')
+        .leftJoin('item.cart', 'cart')
+        .where('cart.id = :cartId', { cartId: cart.id })
+        .andWhere('item.product_id = :productId', { productId: product.id })
+        .getOne();
 
       if (item) {
         const newQuantity = item.quantity + dto.quantity;
@@ -93,16 +92,31 @@ export class CartService {
         product,
       });
 
-      return await manager.save(newItem);
+      await manager.save(newItem);
+
+      const updatedCart = await manager.findOne(Cart, {
+        where: { id: cart.id },
+        relations: [
+          'cartItems',
+          'cartItems.product',
+          'cartItems.product.category',
+          'cartItems.product.era',
+        ],
+      });
+
+      return updatedCart;
     });
   }
 
   async getCart(userId: string) {
     let cart = await this.cartsRepository.findOne({
-      where: {
-        user: { id: userId },
-      },
-      relations: ['cartItems', 'cartItems.product'],
+      where: { user: { id: userId } },
+      relations: [
+        'cartItems',
+        'cartItems.product',
+        'cartItems.product.category',
+        'cartItems.product.era',
+      ],
     });
 
     if (!cart) {
