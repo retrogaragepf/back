@@ -28,8 +28,7 @@ export class UsersController {
   @Get()
   @Roles(Role.Admin)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  async getAllUsers(
-  ) {
+  async getAllUsers() {
     const users = await this.userService.getAllUsers();
     return users.map((user) => ({
       id: user.id,
