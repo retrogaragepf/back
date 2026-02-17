@@ -58,6 +58,6 @@ export class Product {
   @JoinColumn({ name: 'category_id' })
   category: Categories;
 
-  @ManyToOne(() => Eras, (eras) => eras.products)
+  @ManyToOne(() => Eras, (eras) => eras.products, { eager: true })
   era: Eras;
 }
