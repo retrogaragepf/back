@@ -1,0 +1,35 @@
+import {
+  Body,
+  Controller,
+  Headers,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { StripeService } from './stripe.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/decorators/current-user.decorator';
+import { CreateCheckoutDto } from './dto/create-checkout.dto';
+import { Request } from 'express';
+
+@Controller('api/stripe')
+export class StripeController {
+  constructor(private readonly stripeService: StripeService) {}
+
+  @Post('checkout')
+  @UseGuards(JwtAuthGuard)
+  createCheckout(
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateCheckoutDto,
+  ) {
+    return this.stripeService.createCheckoutSession(user.id, dto.items);
+  }
+
+  @Post('webhook')
+  webhook(@Req() req: Request, @Headers('stripe-signature') signature: string) {
+    return this.stripeService.handleWebhook(
+      req as Request & { body: Buffer },
+      signature,
+    );
+  }
+}

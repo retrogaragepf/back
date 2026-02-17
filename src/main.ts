@@ -3,11 +3,21 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as express from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  //  desactivamos bodyParser automático
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+  });
 
   app.enableCors();
+
+  //  Stripe webhook necesita raw
+  app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+
+  //  resto de la app usa JSON normal
+  app.use(express.json());
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -19,7 +29,7 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Retrogarage (Back)')
     .setDescription(
-      'Back para una aplicación de E-commerce, desarrollada con NestJS, TypeORM y PostgreSQL. Incluye autenticación JWT, gestión de usuarios, productos, categorías y órdenes.',
+      'Back para una aplicación de E-commerce, desarrollada con NestJS, TypeORM y PostgreSQL.',
     )
     .setVersion('1.0.0')
     .addBearerAuth()
@@ -35,7 +45,7 @@ async function bootstrap() {
 
   await app.listen(PORT);
 
-  console.log(`Servidor escuchando en http://${HOST}:${PORT}`);
+  console.log(`Servidor escuchando en puerto ${PORT}`);
 }
 
 bootstrap();
