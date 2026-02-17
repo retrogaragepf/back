@@ -32,6 +32,7 @@ export class CartService {
   ) {}
 
   async addToCart(userId: string, dto: AddToCartDto) {
+    console.log('user id que llega a adtocart:', userId);
     return await this.dataSource.transaction(async (manager) => {
       const product = await manager.findOne(Product, {
         where: { id: dto.productId, status: ProductStatus.APPROVED },
@@ -53,6 +54,7 @@ export class CartService {
         where: { user: { id: userId } },
         relations: ['user'],
       });
+      console.log('CART ENCONTRADO:', cart?.id);
 
       if (!cart) {
         const user = await manager.findOne(Users, {
