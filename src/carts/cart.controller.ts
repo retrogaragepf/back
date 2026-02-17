@@ -25,18 +25,21 @@ import { Users } from 'src/users/entities/users.entity';
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   async addToCart(@Body() dto: AddToCartDto, @Req() req: Request) {
-    const user = req.user as Users;
-    return this.cartService.addToCart(user.id, dto);
+    const userId = (req.user as any).id;
+    return this.cartService.addToCart(userId, dto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   async getCart(@Req() req: Request) {
-    const user = req.user as Users;
-    return this.cartService.getCart(user.id);
+    const userId = (req.user as any).id;
+    return this.cartService.getCart(userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch('item/:id')
   async updateItemQuantity(
     @Param('id', ParseUUIDPipe) itemId: string,
@@ -45,6 +48,7 @@ export class CartController {
     return this.cartService.updateItemQuantity(itemId, quantity);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete('item/:id')
   async removeItem(@Param('id', ParseUUIDPipe) itemId: string) {
     return this.cartService.removeItem(itemId);
