@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -32,5 +34,11 @@ export class StripeController {
       req as Request & { body: Buffer },
       signature,
     );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('session')
+  async getSession(@Query('sessionId') sessionId: string) {
+    return this.stripeService.getSession(sessionId);
   }
 }
