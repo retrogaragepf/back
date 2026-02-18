@@ -38,7 +38,7 @@ export class StripeController {
 
   @UseGuards(JwtAuthGuard)
   @Get('session')
-  async getSession(@Query('sessionId') sessionId: string) {
+  async getSession(@Query('session_id') sessionId: string) {
     return this.stripeService.getSession(sessionId);
   }
 }
