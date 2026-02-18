@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from 'src/products/entities/products.entity';
 import { Repository } from 'typeorm';
 import { DataSource } from 'typeorm';
-import { Order } from 'src/orders/entities/order.entity';
+import { Order, OrderStatus } from 'src/orders/entities/order.entity';
 import { OrderItem } from 'src/orders/entities/order-item.entity';
 import { CartItem } from 'src/cartItem/entities/cartItem.entity';
 import { Request } from 'express';
@@ -124,9 +124,13 @@ export class StripeService {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
 
+      // 🔐 Validar que realmente esté pagado
+      if (session.payment_status !== 'paid') return;
+
       const userId = session.metadata?.userId;
       if (!userId) return;
 
+      // 🚫 Evitar duplicados
       const existingOrder = await this.orderRepository.findOne({
         where: { stripeSessionId: session.id },
       });
@@ -134,51 +138,57 @@ export class StripeService {
       if (existingOrder) return;
 
       await this.dataSource.transaction(async (manager) => {
-        const lineItems = await this.stripe.checkout.sessions.listLineItems(
-          session.id,
-          {
-            expand: ['data.price.product'],
-          },
-        );
+        // 1️⃣ Obtener carrito real del usuario
+        const cartItems = await manager.find(CartItem, {
+          where: { cart: { user: { id: userId } } },
+          relations: ['product'],
+        });
 
+        if (!cartItems.length) {
+          throw new Error('Cart is empty');
+        }
+
+        // 2️⃣ Validar stock nuevamente
+        for (const item of cartItems) {
+          if (item.quantity > item.product.stock) {
+            throw new Error(
+              `Not enough stock for product ${item.product.title}`,
+            );
+          }
+        }
+
+        // 3️⃣ Generar código de tracking
+        const trackingCode =
+          'TRK-' +
+          require('crypto').randomBytes(4).toString('hex').toUpperCase();
+
+        // 4️⃣ Crear orden
         const order = manager.create(Order, {
           user: { id: userId },
           stripeSessionId: session.id,
           total: (session.amount_total ?? 0) / 100,
+          trackingCode,
+          status: OrderStatus.PAID,
         });
 
         await manager.save(order);
 
-        for (const item of lineItems.data) {
-          const stripeProduct = item.price?.product as Stripe.Product;
-
-          const productId = stripeProduct?.metadata?.productId;
-
-          if (!productId) {
-            throw new Error('Missing productId in Stripe metadata');
-          }
-
-          const product = await manager.findOne(Product, {
-            where: { id: productId },
-          });
-
-          if (!product) {
-            throw new Error(`Product not found with id ${productId}`);
-          }
-
+        // 5️⃣ Crear OrderItems y descontar stock
+        for (const item of cartItems) {
           await manager.save(
             manager.create(OrderItem, {
               order,
-              product,
-              quantity: item.quantity ?? 0,
-              price: (item.amount_total ?? 0) / 100,
+              product: item.product,
+              quantity: item.quantity,
+              price: item.product.price,
             }),
           );
 
-          product.stock -= item.quantity ?? 0;
-          await manager.save(product);
+          item.product.stock -= item.quantity;
+          await manager.save(item.product);
         }
 
+        // 6️⃣ Limpiar carrito
         await manager.delete(CartItem, {
           cart: { user: { id: userId } },
         });

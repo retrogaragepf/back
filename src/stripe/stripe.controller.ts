@@ -12,7 +12,7 @@ import { StripeService } from './stripe.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
-import { request, Request } from 'express';
+import { Request } from 'express';
 
 @Controller('api/stripe')
 export class StripeController {
