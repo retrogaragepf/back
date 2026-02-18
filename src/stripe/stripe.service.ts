@@ -88,8 +88,8 @@ export class StripeService {
       mode: 'payment',
       payment_method_types: ['card'],
       line_items,
-      success_url: `${frontUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontUrl}/checkout/cancel`,
+      success_url: `${process.env.FRONT_URL}/success`,
+      cancel_url: `${process.env.FRONT_URL}/cancel`,
       metadata: {
         userId,
       },
