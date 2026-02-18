@@ -33,7 +33,12 @@ export class UsersRepository {
   }
 
   async getUserByEmail(email: string): Promise<Users | null> {
-    return await this.ormUsersRepository.findOneBy({ email, isActive: true });
+    return await this.ormUsersRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.email = :email', { email })
+      .andWhere('user.isActive = :isActive', { isActive: true })
+      .getOne();
   }
 
   async addUser(newUserData: CreateUserDto): Promise<Users> {

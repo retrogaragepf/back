@@ -6,17 +6,18 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as express from 'express';
 
 async function bootstrap() {
-  //  desactivamos bodyParser automático
   const app = await NestFactory.create(AppModule, {
     bodyParser: false,
   });
 
-  app.enableCors();
+  app.enableCors({
+    origin: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
 
-  //  Stripe webhook necesita raw
   app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
-  //  resto de la app usa JSON normal
   app.use(express.json());
 
   app.useGlobalPipes(
