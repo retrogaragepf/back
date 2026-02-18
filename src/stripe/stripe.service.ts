@@ -187,4 +187,21 @@ export class StripeService {
 
     return { received: true };
   }
+
+  async getSession(sessionId: string) {
+    if (!sessionId) {
+      throw new Error('Session ID is required');
+    }
+
+    const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+
+    return {
+      id: session.id,
+      status: session.status,
+      payment_status: session.payment_status,
+      customer_email: session.customer_details?.email,
+      amount_total: session.amount_total,
+      currency: session.currency,
+    };
+  }
 }
