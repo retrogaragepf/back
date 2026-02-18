@@ -10,7 +10,7 @@ import { StripeService } from './stripe.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
-import { Request } from 'express';
+import { request, Request } from 'express';
 
 @Controller('api/stripe')
 export class StripeController {
@@ -19,10 +19,11 @@ export class StripeController {
   @Post('checkout')
   @UseGuards(JwtAuthGuard)
   createCheckout(
+    @Req() req: Request,
     @CurrentUser() user: { id: string },
     @Body() dto: CreateCheckoutDto,
   ) {
-    return this.stripeService.createCheckoutSession(user.id, dto.items);
+    return this.stripeService.createCheckoutSession(user.id, dto.items, req);
   }
 
   @Post('webhook')

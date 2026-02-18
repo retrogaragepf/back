@@ -43,6 +43,7 @@ export class StripeService {
   async createCheckoutSession(
     userId: string,
     items: { productId: string; quantity: number }[],
+    req: Request,
   ) {
     if (!items || items.length === 0) {
       throw new BadRequestException('No items provided');
@@ -84,12 +85,14 @@ export class StripeService {
 
     const frontUrl = this.configService.getOrThrow<string>('FRONT_URL');
 
+    const origin = req.headers.origin || 'http://localhost:3000/';
+
     const session = await this.stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
       line_items,
-      success_url: `${process.env.FRONT_URL}/success`,
-      cancel_url: `${process.env.FRONT_URL}/cancel`,
+      success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/cart`,
       metadata: {
         userId,
       },
