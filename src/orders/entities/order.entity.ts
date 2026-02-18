@@ -23,9 +23,8 @@ export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Users, (user) => user.orders, { eager: false })
-  @JoinColumn({ name: 'user_id' })
-  user: Users;
+  @Column('decimal', { precision: 12, scale: 2 })
+  total: number;
 
   @Column({
     type: 'enum',
@@ -34,8 +33,8 @@ export class Order {
   })
   status: OrderStatus;
 
-  @Column('decimal', { precision: 12, scale: 2 })
-  total: number;
+  @Column({ unique: true })
+  trakingCode: string;
 
   @Index({ unique: true })
   @Column({ nullable: true })
@@ -44,14 +43,18 @@ export class Order {
   @Column({ nullable: true })
   stripePaymentIntentId: string;
 
-  @CreateDateColumn()
-  createdAt: Date;
-
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @ManyToOne(() => Users, (user) => user.orders, { eager: false })
+  @JoinColumn({ name: 'user_id' })
+  user: Users;
 
   @OneToMany(() => OrderItem, (item) => item.order, {
     cascade: true,
   })
   items: OrderItem[];
+
+  @CreateDateColumn()
+  createdAt: Date;
 }
