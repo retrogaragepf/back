@@ -9,6 +9,8 @@ import { Order, OrderStatus } from 'src/orders/entities/order.entity';
 import { OrderItem } from 'src/orders/entities/order-item.entity';
 import { CartItem } from 'src/cartItem/entities/cartItem.entity';
 import { Request } from 'express';
+import { Cart } from 'src/carts/entities/cart.entity';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class StripeService {
@@ -136,20 +138,19 @@ export class StripeService {
       });
 
       if (existingOrder) return;
-
       await this.dataSource.transaction(async (manager) => {
-        // 1️⃣ Obtener carrito real del usuario
-        const cartItems = await manager.find(CartItem, {
-          where: { cart: { user: { id: userId } } },
-          relations: ['product'],
+        // 1️⃣ Buscar carrito del usuario
+        const cart = await manager.findOne(Cart, {
+          where: { user: { id: userId } },
+          relations: ['cartItems', 'cartItems.product'],
         });
 
-        if (!cartItems.length) {
+        if (!cart || !cart.cartItems.length) {
           throw new Error('Cart is empty');
         }
 
-        // 2️⃣ Validar stock nuevamente
-        for (const item of cartItems) {
+        // 2️⃣ Validar stock
+        for (const item of cart.cartItems) {
           if (item.quantity > item.product.stock) {
             throw new Error(
               `Not enough stock for product ${item.product.title}`,
@@ -157,14 +158,13 @@ export class StripeService {
           }
         }
 
-        // 3️⃣ Generar código de tracking
+        // 3️⃣ Generar tracking
         const trackingCode =
-          'TRK-' +
-          require('crypto').randomBytes(4).toString('hex').toUpperCase();
+          'TRK-' + randomBytes(4).toString('hex').toUpperCase();
 
         // 4️⃣ Crear orden
         const order = manager.create(Order, {
-          user: { id: userId },
+          user: { id: userId } as any,
           stripeSessionId: session.id,
           total: (session.amount_total ?? 0) / 100,
           trackingCode,
@@ -174,13 +174,13 @@ export class StripeService {
         await manager.save(order);
 
         // 5️⃣ Crear OrderItems y descontar stock
-        for (const item of cartItems) {
+        for (const item of cart.cartItems) {
           await manager.save(
             manager.create(OrderItem, {
               order,
               product: item.product,
               quantity: item.quantity,
-              price: item.product.price,
+              price: item.priceAtMoment,
             }),
           );
 
@@ -190,7 +190,7 @@ export class StripeService {
 
         // 6️⃣ Limpiar carrito
         await manager.delete(CartItem, {
-          cart: { user: { id: userId } },
+          cart: { id: cart.id },
         });
       });
     }

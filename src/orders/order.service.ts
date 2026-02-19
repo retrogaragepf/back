@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order } from './entities/order.entity';
@@ -22,5 +22,21 @@ export class OrdersService {
     return this.orderRepository.findOne({
       where: { stripeSessionId: sessionId },
     });
+  }
+
+  async getOrderById(orderId: string, userId: string) {
+    const order = await this.orderRepository.findOne({
+      where: {
+        id: orderId,
+        user: { id: userId },
+      },
+      relations: ['items', 'items.product'],
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return order;
   }
 }
