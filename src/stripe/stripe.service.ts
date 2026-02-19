@@ -167,7 +167,7 @@ export class StripeService {
           user: { id: userId } as any,
           stripeSessionId: session.id,
           total: (session.amount_total ?? 0) / 100,
-          trackingCode,
+          trackingCode: trackingCode,
           status: OrderStatus.PAID,
         });
 
