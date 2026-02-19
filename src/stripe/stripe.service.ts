@@ -175,15 +175,20 @@ export class StripeService {
 
         // 5️⃣ Crear OrderItems y descontar stock
         for (const item of cart.cartItems) {
+          const subtotal = item.quantity * Number(item.priceAtMoment);
+
           await manager.save(
             manager.create(OrderItem, {
               order,
               product: item.product,
               quantity: item.quantity,
-              price: item.priceAtMoment,
+              title: item.product.title,
+              unitPrice: item.priceAtMoment,
+              subtotal: subtotal,
             }),
           );
 
+          // descontar stock
           item.product.stock -= item.quantity;
           await manager.save(item.product);
         }
