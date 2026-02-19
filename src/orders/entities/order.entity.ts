@@ -34,7 +34,7 @@ export class Order {
   status: OrderStatus;
 
   @Column({ unique: true })
-  trakingCode: string;
+  trackingCode: string;
 
   @Index({ unique: true })
   @Column({ nullable: true })
