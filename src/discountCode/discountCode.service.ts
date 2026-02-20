@@ -55,18 +55,26 @@ export class DiscountService {
     });
   }
 
-  async validateForCart(code: string, total: number) {
-    const discount = await this.validateCode(code);
+  async validateCoupon(code: string) {
+    const discount = await this.discountRepo.findOne({
+      where: { code },
+    });
 
-    const discountAmount = total * (discount.percentage / 100);
-    const finalTotal = total - discountAmount;
+    if (!discount) {
+      throw new BadRequestException('Cupón inválido');
+    }
+
+    if (!discount.isActive) {
+      throw new BadRequestException('Cupón inactivo');
+    }
+
+    if (discount.isUsed) {
+      throw new BadRequestException('Cupón ya utilizado');
+    }
 
     return {
       valid: true,
-      code: discount.code,
       percentage: discount.percentage,
-      discountAmount,
-      finalTotal,
     };
   }
 
