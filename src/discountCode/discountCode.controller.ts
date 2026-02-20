@@ -13,12 +13,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { Role } from '../users/roles.enum';
+import { ValidateCouponDto } from './dto/validate-coupon.dto';
 
 @Controller('discounts')
 export class DiscountController {
   constructor(private readonly discountService: DiscountService) {}
 
-  // 👑 Solo admin crea
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
   @Post()
@@ -26,7 +26,11 @@ export class DiscountController {
     return this.discountService.create(dto);
   }
 
-  // 👑 Solo admin ve todos
+  @Post('validate')
+  validateCoupon(@Body() dto: ValidateCouponDto) {
+    return this.discountService.validateForCart(dto.code, dto.total);
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
   @Get()
@@ -34,7 +38,6 @@ export class DiscountController {
     return this.discountService.findAll();
   }
 
-  // 👑 Solo admin desactiva
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
   @Patch(':id/deactivate')

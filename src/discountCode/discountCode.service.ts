@@ -55,6 +55,21 @@ export class DiscountService {
     });
   }
 
+  async validateForCart(code: string, total: number) {
+    const discount = await this.validateCode(code);
+
+    const discountAmount = total * (discount.percentage / 100);
+    const finalTotal = total - discountAmount;
+
+    return {
+      valid: true,
+      code: discount.code,
+      percentage: discount.percentage,
+      discountAmount,
+      finalTotal,
+    };
+  }
+
   async validateCode(code: string) {
     const discount = await this.discountRepo.findOne({
       where: {
