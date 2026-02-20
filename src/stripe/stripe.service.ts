@@ -54,8 +54,8 @@ export class StripeService {
       throw new BadRequestException('No items provided');
     }
 
-    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
     let subtotal = 0;
+    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
 
     for (const item of items) {
       if (item.quantity <= 0) {
@@ -75,6 +75,7 @@ export class StripeService {
       }
 
       const unitPrice = Number(product.price);
+
       subtotal += unitPrice * item.quantity;
 
       line_items.push({
@@ -82,9 +83,6 @@ export class StripeService {
           currency: 'cop',
           product_data: {
             name: product.title,
-            metadata: {
-              productId: String(product.id),
-            },
           },
           unit_amount: unitPrice * 100,
         },
@@ -92,16 +90,21 @@ export class StripeService {
       });
     }
 
+    // 🔥 Revalidar cupón en servidor
     let discountPercentage = 0;
-    let discountAmount = 0;
 
     if (discountCode) {
       const discount = await this.discountService.validateCode(discountCode);
       discountPercentage = discount.percentage;
-      discountAmount = subtotal * (discountPercentage / 100);
     }
 
+    const discountAmount = subtotal * (discountPercentage / 100);
     const finalTotal = subtotal - discountAmount;
+
+    // 🔥 VALIDACIÓN CRÍTICA
+    if (typeof finalTotal !== 'number' || isNaN(finalTotal) || finalTotal < 1) {
+      throw new BadRequestException('El total debe ser mayor o igual a 1');
+    }
 
     const origin = req.headers.origin || 'http://localhost:3000';
 
