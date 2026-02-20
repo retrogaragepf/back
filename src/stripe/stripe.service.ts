@@ -104,6 +104,21 @@ export class StripeService {
       throw new BadRequestException('El total debe ser mayor o igual a 1');
     }
 
+    let stripeCouponId: string | undefined;
+
+    if (discountCode) {
+      const discount = await this.discountService.validateCode(discountCode);
+
+      discountPercentage = discount.percentage;
+
+      const stripeCoupon = await this.stripe.coupons.create({
+        percent_off: discountPercentage,
+        duration: 'once',
+      });
+
+      stripeCouponId = stripeCoupon.id;
+    }
+
     const origin = req.headers.origin || 'http://localhost:3000';
 
     const session = await this.stripe.checkout.sessions.create({
