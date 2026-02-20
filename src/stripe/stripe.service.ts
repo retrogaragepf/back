@@ -121,13 +121,17 @@ export class StripeService {
       },
     });
 
-    return {
-      url: session.url,
-      sessionId: session.id,
-      subtotal,
-      discountAmount,
-      total: finalTotal,
-    };
+    return (
+      console.log('debug checkoput respone'),
+      {
+        url: session.url,
+        sessionId: session.id,
+        subtotal,
+        discountAmount,
+        total: finalTotal,
+        typeDiscount: typeof discountAmount,
+      }
+    );
   }
 
   async handleWebhook(req: Request & { body: Buffer }, signature: string) {
