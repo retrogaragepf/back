@@ -55,7 +55,7 @@ export class StripeService {
     }
 
     const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
-    let totalAmount = 0;
+    let subtotal = 0;
 
     for (const item of items) {
       if (item.quantity <= 0) {
@@ -75,7 +75,7 @@ export class StripeService {
       }
 
       const unitPrice = Number(product.price);
-      totalAmount += unitPrice * item.quantity;
+      subtotal += unitPrice * item.quantity;
 
       line_items.push({
         price_data: {
@@ -93,16 +93,17 @@ export class StripeService {
     }
 
     let discountPercentage = 0;
+    let discountAmount = 0;
 
     if (discountCode) {
       const discount = await this.discountService.validateCode(discountCode);
       discountPercentage = discount.percentage;
+      discountAmount = subtotal * (discountPercentage / 100);
     }
 
-    const discountAmount = totalAmount * (discountPercentage / 100);
-    const finalTotal = totalAmount - discountAmount;
+    const finalTotal = subtotal - discountAmount;
 
-    const origin = req.headers.origin || 'http://localhost:3000/';
+    const origin = req.headers.origin || 'http://localhost:3000';
 
     const session = await this.stripe.checkout.sessions.create({
       mode: 'payment',
@@ -114,15 +115,17 @@ export class StripeService {
         userId,
         discountCode: discountCode ?? '',
         discountPercentage: discountPercentage.toString(),
-        originalTotal: totalAmount.toString(),
+        subtotal: subtotal.toString(),
+        finalTotal: finalTotal.toString(),
       },
     });
 
     return {
       url: session.url,
       sessionId: session.id,
-      total: finalTotal,
+      subtotal,
       discountApplied: discountAmount,
+      total: finalTotal,
     };
   }
 
@@ -167,21 +170,14 @@ export class StripeService {
           throw new Error('Cart is empty');
         }
 
+        let subtotal = 0;
+
         for (const item of cart.cartItems) {
           if (item.quantity > item.product.stock) {
-            throw new Error(
-              `Not enough stock for product ${item.product.title}`,
-            );
+            throw new Error(`Not enough stock for ${item.product.title}`);
           }
-        }
 
-        const trackingCode =
-          'TRK-' + randomBytes(4).toString('hex').toUpperCase();
-
-        let total = 0;
-
-        for (const item of cart.cartItems) {
-          total += item.quantity * Number(item.priceAtMoment);
+          subtotal += item.quantity * Number(item.priceAtMoment);
         }
 
         const discountCode = session.metadata?.discountCode;
@@ -192,26 +188,28 @@ export class StripeService {
         let discountAmount = 0;
 
         if (discountCode && discountPercentage > 0) {
-          discountAmount = total * (discountPercentage / 100);
+          discountAmount = subtotal * (discountPercentage / 100);
 
-          // 🔐 Marcar código como usado
           await this.discountService.markAsUsed(discountCode, userId, manager);
         }
 
-        const finalTotal = total - discountAmount;
+        const finalTotal = subtotal - discountAmount;
+
+        const trackingCode =
+          'TRK-' + randomBytes(4).toString('hex').toUpperCase();
 
         const order = manager.create(Order, {
           user: { id: userId } as any,
           stripeSessionId: session.id,
           total: finalTotal,
-          trackingCode: trackingCode,
+          trackingCode,
           status: OrderStatus.PAID,
         });
 
         await manager.save(order);
 
         for (const item of cart.cartItems) {
-          const subtotal = item.quantity * Number(item.priceAtMoment);
+          const subtotalItem = item.quantity * Number(item.priceAtMoment);
 
           await manager.save(
             manager.create(OrderItem, {
@@ -220,7 +218,7 @@ export class StripeService {
               quantity: item.quantity,
               title: item.product.title,
               unitPrice: item.priceAtMoment,
-              subtotal: subtotal,
+              subtotal: subtotalItem,
             }),
           );
 

@@ -28,9 +28,8 @@ export class DiscountController {
 
   @Post('validate')
   validateCoupon(@Body() dto: ValidateCouponDto) {
-    return this.discountService.validateForCart(dto.code, dto.total);
+    return this.discountService.validateCoupon(dto.code);
   }
-
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
   @Get()
