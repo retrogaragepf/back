@@ -11,6 +11,7 @@ import { CartItem } from 'src/cartItem/entities/cartItem.entity';
 import { Request } from 'express';
 import { Cart } from 'src/carts/entities/cart.entity';
 import { randomBytes } from 'crypto';
+import { DiscountService } from 'src/discountCode/discountCode.service';
 
 @Injectable()
 export class StripeService {
@@ -18,6 +19,7 @@ export class StripeService {
 
   constructor(
     private configService: ConfigService,
+    private discountService: DiscountService,
 
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
@@ -46,12 +48,14 @@ export class StripeService {
     userId: string,
     items: { productId: string; quantity: number }[],
     req: Request,
+    discountCode?: string,
   ) {
     if (!items || items.length === 0) {
       throw new BadRequestException('No items provided');
     }
 
     const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    let totalAmount = 0;
 
     for (const item of items) {
       if (item.quantity <= 0) {
@@ -70,6 +74,9 @@ export class StripeService {
         throw new BadRequestException('Not enough stock');
       }
 
+      const unitPrice = Number(product.price);
+      totalAmount += unitPrice * item.quantity;
+
       line_items.push({
         price_data: {
           currency: 'cop',
@@ -79,13 +86,21 @@ export class StripeService {
               productId: String(product.id),
             },
           },
-          unit_amount: Number(product.price) * 100,
+          unit_amount: unitPrice * 100,
         },
         quantity: item.quantity,
       });
     }
 
-    const frontUrl = this.configService.getOrThrow<string>('FRONT_URL');
+    let discountPercentage = 0;
+
+    if (discountCode) {
+      const discount = await this.discountService.validateCode(discountCode);
+      discountPercentage = discount.percentage;
+    }
+
+    const discountAmount = totalAmount * (discountPercentage / 100);
+    const finalTotal = totalAmount - discountAmount;
 
     const origin = req.headers.origin || 'http://localhost:3000/';
 
@@ -97,12 +112,17 @@ export class StripeService {
       cancel_url: `${origin}/cart`,
       metadata: {
         userId,
+        discountCode: discountCode ?? '',
+        discountPercentage: discountPercentage.toString(),
+        originalTotal: totalAmount.toString(),
       },
     });
 
     return {
       url: session.url,
       sessionId: session.id,
+      total: finalTotal,
+      discountApplied: discountAmount,
     };
   }
 
@@ -126,20 +146,18 @@ export class StripeService {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      // 🔐 Validar que realmente esté pagado
       if (session.payment_status !== 'paid') return;
 
       const userId = session.metadata?.userId;
       if (!userId) return;
 
-      // 🚫 Evitar duplicados
       const existingOrder = await this.orderRepository.findOne({
         where: { stripeSessionId: session.id },
       });
 
       if (existingOrder) return;
+
       await this.dataSource.transaction(async (manager) => {
-        // 1️⃣ Buscar carrito del usuario
         const cart = await manager.findOne(Cart, {
           where: { user: { id: userId } },
           relations: ['cartItems', 'cartItems.product'],
@@ -149,7 +167,6 @@ export class StripeService {
           throw new Error('Cart is empty');
         }
 
-        // 2️⃣ Validar stock
         for (const item of cart.cartItems) {
           if (item.quantity > item.product.stock) {
             throw new Error(
@@ -158,22 +175,41 @@ export class StripeService {
           }
         }
 
-        // 3️⃣ Generar tracking
         const trackingCode =
           'TRK-' + randomBytes(4).toString('hex').toUpperCase();
 
-        // 4️⃣ Crear orden
+        let total = 0;
+
+        for (const item of cart.cartItems) {
+          total += item.quantity * Number(item.priceAtMoment);
+        }
+
+        const discountCode = session.metadata?.discountCode;
+        let discountPercentage = Number(
+          session.metadata?.discountPercentage || 0,
+        );
+
+        let discountAmount = 0;
+
+        if (discountCode && discountPercentage > 0) {
+          discountAmount = total * (discountPercentage / 100);
+
+          // 🔐 Marcar código como usado
+          await this.discountService.markAsUsed(discountCode, userId, manager);
+        }
+
+        const finalTotal = total - discountAmount;
+
         const order = manager.create(Order, {
           user: { id: userId } as any,
           stripeSessionId: session.id,
-          total: (session.amount_total ?? 0) / 100,
+          total: finalTotal,
           trackingCode: trackingCode,
           status: OrderStatus.PAID,
         });
 
         await manager.save(order);
 
-        // 5️⃣ Crear OrderItems y descontar stock
         for (const item of cart.cartItems) {
           const subtotal = item.quantity * Number(item.priceAtMoment);
 
@@ -188,12 +224,10 @@ export class StripeService {
             }),
           );
 
-          // descontar stock
           item.product.stock -= item.quantity;
           await manager.save(item.product);
         }
 
-        // 6️⃣ Limpiar carrito
         await manager.delete(CartItem, {
           cart: { id: cart.id },
         });

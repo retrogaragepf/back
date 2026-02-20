@@ -13,10 +13,14 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { Request } from 'express';
+import { DiscountService } from 'src/discountCode/discountCode.service';
 
 @Controller('api/stripe')
 export class StripeController {
-  constructor(private readonly stripeService: StripeService) {}
+  constructor(
+    private readonly stripeService: StripeService,
+    private readonly dicountService: DiscountService,
+  ) {}
 
   @Post('checkout')
   @UseGuards(JwtAuthGuard)
