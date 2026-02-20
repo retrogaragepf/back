@@ -8,9 +8,6 @@ import {
 } from 'class-validator';
 
 export class CreateDiscountDto {
-  @IsString()
-  code: string;
-
   @IsInt()
   @Min(1)
   @Max(90)

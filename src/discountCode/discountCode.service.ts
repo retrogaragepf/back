@@ -4,9 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { DiscountCode } from './entities/discount_codes.entity';
 import { CreateDiscountDto } from './dto/create-discount.dto';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class DiscountService {
@@ -15,22 +16,35 @@ export class DiscountService {
     private readonly discountRepo: Repository<DiscountCode>,
   ) {}
 
-  // ...existing code...
-  async create(dto: CreateDiscountDto) {
-    const code = dto.code.toUpperCase();
-    const existing = await this.discountRepo.findOne({
-      where: { code },
-    });
+  private async generateUniqueCode(): Promise<string> {
+    let code: string;
+    let exists = true;
 
-    if (existing) {
-      throw new BadRequestException('Code already exists');
+    while (exists) {
+      code = randomBytes(4).toString('hex').toUpperCase();
+
+      const found = await this.discountRepo.findOne({
+        where: { code },
+      });
+
+      if (!found) {
+        exists = false;
+      }
     }
 
-    const discount = this.discountRepo.create({
+    return code!;
+  }
+
+  async create(dto: CreateDiscountDto) {
+    const code = await this.generateUniqueCode();
+
+    const discountData: DeepPartial<DiscountCode> = {
       code,
       percentage: dto.percentage,
       expiresAt: dto.expiresAt ?? undefined,
-    });
+    };
+
+    const discount = this.discountRepo.create(discountData);
 
     return this.discountRepo.save(discount);
   }
