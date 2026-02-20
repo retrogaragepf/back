@@ -90,7 +90,6 @@ export class StripeService {
       });
     }
 
-    // 🔥 Revalidar cupón en servidor
     let discountPercentage = 0;
 
     if (discountCode) {
@@ -101,7 +100,6 @@ export class StripeService {
     const discountAmount = subtotal * (discountPercentage / 100);
     const finalTotal = subtotal - discountAmount;
 
-    // 🔥 VALIDACIÓN CRÍTICA
     if (typeof finalTotal !== 'number' || isNaN(finalTotal) || finalTotal < 1) {
       throw new BadRequestException('El total debe ser mayor o igual a 1');
     }
@@ -127,7 +125,7 @@ export class StripeService {
       url: session.url,
       sessionId: session.id,
       subtotal,
-      discountApplied: discountAmount,
+      discountAmount,
       total: finalTotal,
     };
   }
