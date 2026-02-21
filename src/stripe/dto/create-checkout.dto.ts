@@ -1,4 +1,12 @@
-import { IsArray, ValidateNested, IsUUID, IsInt, Min } from 'class-validator';
+import {
+  IsArray,
+  ValidateNested,
+  IsUUID,
+  IsInt,
+  Min,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class CheckoutItemDto {
@@ -12,9 +20,17 @@ class CheckoutItemDto {
 
 export class CreateCheckoutDto {
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CheckoutItemDto)
-  items: CheckoutItemDto[];
+  items: { productId: string; quantity: number }[];
 
+  @IsOptional()
+  @IsString()
   discountCode?: string;
+
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
+
+  @IsOptional()
+  @IsString()
+  code?: string;
 }
