@@ -33,7 +33,7 @@ export class StripeController {
       user.id,
       dto.items,
       req,
-      dto.discountCode,
+      dto.discountCode ?? dto.couponCode ?? dto.code,
     );
   }
 
