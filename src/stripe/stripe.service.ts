@@ -50,6 +50,10 @@ export class StripeService {
     req: Request,
     discountCode?: string,
   ) {
+    console.log('--- INICIO createCheckoutSession ---');
+    console.log('User:', userId);
+    console.log('DiscountCode recibido:', discountCode);
+
     if (!items || items.length === 0) {
       throw new BadRequestException('No items provided');
     }
@@ -75,7 +79,6 @@ export class StripeService {
       }
 
       const unitPrice = Number(product.price);
-
       subtotal += unitPrice * item.quantity;
 
       line_items.push({
@@ -90,25 +93,40 @@ export class StripeService {
       });
     }
 
-    // 🔥 VALIDAR CUPÓN SOLO UNA VEZ
+    console.log('Subtotal calculado:', subtotal);
+
     let discountPercentage = 0;
     let stripeCouponId: string | undefined;
 
     if (discountCode) {
       const discount = await this.discountService.validateCode(discountCode);
+
+      console.log('Discount encontrado en DB:', discount);
+
       discountPercentage = Number(discount.percentage);
 
-      // Crear cupón dinámico en Stripe
+      console.log('Porcentaje aplicado:', discountPercentage);
+
+      if (!Number.isFinite(discountPercentage) || discountPercentage <= 0) {
+        throw new BadRequestException('Invalid discount percentage');
+      }
+
       const stripeCoupon = await this.stripe.coupons.create({
         percent_off: discountPercentage,
         duration: 'once',
       });
 
       stripeCouponId = stripeCoupon.id;
+
+      console.log('Stripe coupon creado:', stripeCoupon);
+      console.log('Stripe coupon ID:', stripeCouponId);
     }
 
     const discountAmount = subtotal * (discountPercentage / 100);
     const finalTotal = subtotal - discountAmount;
+
+    console.log('DiscountAmount:', discountAmount);
+    console.log('FinalTotal:', finalTotal);
 
     if (typeof finalTotal !== 'number' || isNaN(finalTotal) || finalTotal < 1) {
       throw new BadRequestException('El total debe ser mayor o igual a 1');
@@ -116,14 +134,11 @@ export class StripeService {
 
     const origin = req.headers.origin || 'http://localhost:3000';
 
-    const session = await this.stripe.checkout.sessions.create({
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'payment',
       payment_method_types: ['card'],
       line_items,
-
-      // 🔥 AQUI ESTÁ LA CLAVE
       discounts: stripeCouponId ? [{ coupon: stripeCouponId }] : undefined,
-
       success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/cart`,
       metadata: {
@@ -133,7 +148,14 @@ export class StripeService {
         subtotal: subtotal.toString(),
         finalTotal: finalTotal.toString(),
       },
-    });
+    };
+
+    console.log('SESSION PARAMS ENVIADOS A STRIPE:', sessionParams);
+
+    const session = await this.stripe.checkout.sessions.create(sessionParams);
+
+    console.log('Stripe session creada:', session.id);
+    console.log('--- FIN createCheckoutSession ---');
 
     return {
       url: session.url,
