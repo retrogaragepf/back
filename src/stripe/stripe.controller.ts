@@ -29,7 +29,12 @@ export class StripeController {
     @CurrentUser() user: { id: string },
     @Body() dto: CreateCheckoutDto,
   ) {
-    return this.stripeService.createCheckoutSession(user.id, dto.items, req);
+    return this.stripeService.createCheckoutSession(
+      user.id,
+      dto.items,
+      req,
+      dto.discountCode,
+    );
   }
 
   @Post('webhook')
