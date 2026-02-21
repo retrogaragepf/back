@@ -4,6 +4,7 @@ import {
   ManyToOne,
   Column,
   Unique,
+  JoinColumn,
 } from 'typeorm';
 import { Cart } from '../../carts/entities/cart.entity';
 import { Product } from '../../products/entities/products.entity';
@@ -28,10 +29,12 @@ export class CartItem {
   @ManyToOne(() => Cart, (cart) => cart.cartItems, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'cart_id' })
   cart: Cart;
 
   @ManyToOne(() => Product, (product) => product.cartItem, {
     eager: true,
   })
+  @JoinColumn({ name: 'product_id' })
   product: Product;
 }

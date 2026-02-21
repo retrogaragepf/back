@@ -9,6 +9,9 @@ import { Cart } from './entities/cart.entity';
 import { CartItem } from '../cartItem/entities/cartItem.entity';
 import { Product } from '../products/entities/products.entity';
 import { AddToCartDto } from './dto/cart.dto';
+import { DataSource } from 'typeorm';
+import { ProductStatus } from 'src/products/product-status.enum';
+import { Users } from 'src/users/entities/users.entity';
 
 @Injectable()
 export class CartService {
@@ -21,58 +24,149 @@ export class CartService {
 
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
+
+    @InjectRepository(Users)
+    private readonly usersRepository: Repository<Users>,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   async addToCart(userId: string, dto: AddToCartDto) {
-    const product = await this.productsRepository.findOne({
-      where: { id: dto.productId },
+    console.log('user id que llega a adtocart:', userId);
+    return await this.dataSource.transaction(async (manager) => {
+      const product = await manager.findOne(Product, {
+        where: { id: dto.productId, status: ProductStatus.APPROVED },
+      });
+
+      if (!product) {
+        throw new NotFoundException('Product not found or not available');
+      }
+
+      if (dto.quantity <= 0) {
+        throw new BadRequestException('Quantity must be greater than 0');
+      }
+
+      if (dto.quantity > product.stock) {
+        throw new BadRequestException('Not enough stock');
+      }
+
+      let cart = await manager.findOne(Cart, {
+        where: { user: { id: userId } },
+        relations: ['user'],
+      });
+      console.log('CART ENCONTRADO:', cart?.id);
+
+      if (!cart) {
+        const user = await manager.findOne(Users, {
+          where: { id: userId },
+        });
+
+        if (!user) {
+          throw new NotFoundException('User not found');
+        }
+
+        cart = manager.create(Cart, { user });
+        cart = await manager.save(cart);
+      }
+
+      let item = await manager
+        .createQueryBuilder(CartItem, 'item')
+        .leftJoin('item.cart', 'cart')
+        .where('cart.id = :cartId', { cartId: cart.id })
+        .andWhere('item.product_id = :productId', { productId: product.id })
+        .getOne();
+
+      if (item) {
+        const newQuantity = item.quantity + dto.quantity;
+
+        if (newQuantity > product.stock) {
+          throw new BadRequestException('Not enough stock');
+        }
+
+        item.quantity = newQuantity;
+        return await manager.save(item);
+      }
+
+      const newItem = manager.create(CartItem, {
+        quantity: dto.quantity,
+        priceAtMoment: Number(product.price),
+        cart,
+        product,
+      });
+
+      await manager.save(newItem);
+
+      const updatedCart = await manager.findOne(Cart, {
+        where: { id: cart.id },
+        relations: [
+          'cartItems',
+          'cartItems.product',
+          'cartItems.product.category',
+          'cartItems.product.era',
+        ],
+      });
+
+      return updatedCart;
     });
-
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
-
-    if (product.stock < dto.quantity) {
-      throw new BadRequestException('Not enough stock');
-    }
-
-    const cart = await this.cartsRepository.findOne({
-      where: { user: { id: userId } },
-    });
-
-    if (!cart) {
-      throw new NotFoundException('Cart not found');
-    }
-
-    const existingItem = await this.cartItemsRepository.findOne({
-      where: {
-        cart: { id: cart.id },
-        product: { id: dto.productId },
-      },
-    });
-
-    if (existingItem) {
-      existingItem.quantity += dto.quantity;
-      return await this.cartItemsRepository.save(existingItem);
-    }
-
-    const newItem = this.cartItemsRepository.create({
-      cart,
-      product,
-      quantity: dto.quantity,
-    });
-
-    return await this.cartItemsRepository.save(newItem);
   }
 
   async getCart(userId: string) {
-    return this.cartsRepository.findOne({
+    let cart = await this.cartsRepository.findOne({
       where: { user: { id: userId } },
-      relations: ['cartItems', 'cartItems.product'],
+      relations: [
+        'cartItems',
+        'cartItems.product',
+        'cartItems.product.category',
+        'cartItems.product.era',
+      ],
     });
+
+    if (!cart) {
+      const user = await this.usersRepository.findOne({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      cart = this.cartsRepository.create({ user });
+      cart = await this.cartsRepository.save(cart);
+    }
+
+    return cart;
+  }
+
+  async updateItemQuantity(itemId: string, quantity: number) {
+    if (quantity <= 0) {
+      throw new BadRequestException('Quantity must be greater than 0');
+    }
+
+    const item = await this.cartItemsRepository.findOne({
+      where: { id: itemId },
+      relations: ['product'],
+    });
+
+    if (!item) {
+      throw new NotFoundException('Cart item not found');
+    }
+
+    if (quantity > item.product.stock) {
+      throw new BadRequestException('Not enough stock available');
+    }
+
+    item.quantity = quantity;
+
+    return await this.cartItemsRepository.save(item);
   }
 
   async removeItem(itemId: string) {
-    return this.cartItemsRepository.delete(itemId);
+    const result = await this.cartItemsRepository.delete(itemId);
+
+    if (result.affected === 0) {
+      throw new NotFoundException('Cart item not found');
+    }
+
+    return { message: 'Item removed successfully' };
   }
 }

@@ -14,18 +14,13 @@ export class UsersRepository {
     private readonly dataSource: DataSource,
   ) {}
 
-  async getAllUsers(
-    page: number,
-    limit: number,
-  ): Promise<Omit<Users, 'password'>[]> {
-    const skip = (page - 1) * limit;
-    const allUsers = await this.ormUsersRepository.find({
-      where: { isActive: true },
-      skip: skip,
-      take: limit,
-    });
-    return allUsers.map(({ password, ...userNoPassword }) => userNoPassword);
-  }
+  async getAllUsers(): Promise<Omit<Users, 'password'>[]> {
+  const allUsers = await this.ormUsersRepository.find({
+    where: { isActive: true },
+  });
+
+  return allUsers.map(({ password, ...userNoPassword }) => userNoPassword);
+}
 
   async getUserById(id: string): Promise<Omit<Users, 'password' | 'isAdmin'>> {
     const foundUser = await this.ormUsersRepository.findOne({
@@ -38,7 +33,12 @@ export class UsersRepository {
   }
 
   async getUserByEmail(email: string): Promise<Users | null> {
-    return await this.ormUsersRepository.findOneBy({ email, isActive: true });
+    return await this.ormUsersRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.email = :email', { email })
+      .andWhere('user.isActive = :isActive', { isActive: true })
+      .getOne();
   }
 
   async addUser(newUserData: CreateUserDto): Promise<Users> {

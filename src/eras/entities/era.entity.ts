@@ -10,5 +10,5 @@ export class Eras {
   name: string;
 
   @OneToMany(() => Product, (product) => product.era)
-  products?: Product[];
+  products: Product[];
 }
