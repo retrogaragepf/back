@@ -84,17 +84,27 @@ export class StripeService {
           product_data: {
             name: product.title,
           },
-          unit_amount: unitPrice * 100,
+          unit_amount: Math.round(unitPrice * 100),
         },
         quantity: item.quantity,
       });
     }
 
+    // 🔥 VALIDAR CUPÓN SOLO UNA VEZ
     let discountPercentage = 0;
+    let stripeCouponId: string | undefined;
 
     if (discountCode) {
       const discount = await this.discountService.validateCode(discountCode);
-      discountPercentage = discount.percentage;
+      discountPercentage = Number(discount.percentage);
+
+      // Crear cupón dinámico en Stripe
+      const stripeCoupon = await this.stripe.coupons.create({
+        percent_off: discountPercentage,
+        duration: 'once',
+      });
+
+      stripeCouponId = stripeCoupon.id;
     }
 
     const discountAmount = subtotal * (discountPercentage / 100);
@@ -104,27 +114,16 @@ export class StripeService {
       throw new BadRequestException('El total debe ser mayor o igual a 1');
     }
 
-    let stripeCouponId: string | undefined;
-
-    if (discountCode) {
-      const discount = await this.discountService.validateCode(discountCode);
-
-      discountPercentage = discount.percentage;
-
-      const stripeCoupon = await this.stripe.coupons.create({
-        percent_off: discountPercentage,
-        duration: 'once',
-      });
-
-      stripeCouponId = stripeCoupon.id;
-    }
-
     const origin = req.headers.origin || 'http://localhost:3000';
 
     const session = await this.stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
       line_items,
+
+      // 🔥 AQUI ESTÁ LA CLAVE
+      discounts: stripeCouponId ? [{ coupon: stripeCouponId }] : undefined,
+
       success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/cart`,
       metadata: {
@@ -142,7 +141,7 @@ export class StripeService {
       code: discountCode ?? '',
       percentage: discountPercentage,
       discountAmount,
-      finalTotal: finalTotal,
+      finalTotal,
     };
   }
 
