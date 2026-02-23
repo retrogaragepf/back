@@ -14,6 +14,7 @@ import { SeederModule } from './seeders/seeder.module';
 import { StripeModule } from './stripe/stripe.module';
 import { ChatModule } from './chat/chat.module';
 import { OrdersModule } from './orders/order.module';
+import { VentasModule } from './ventas/ventas.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { OrdersModule } from './orders/order.module';
     StripeModule,
     ChatModule,
     OrdersModule,
+    VentasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
