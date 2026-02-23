@@ -8,6 +8,13 @@ import {
 import { Order } from './order.entity';
 import { Product } from 'src/products/entities/products.entity';
 
+export enum OrderItemStatus {
+  PAID = 'PAID',
+  SHIPPED = 'SHIPPED',
+  DELIVERED = 'DELIVERED',
+  CANCELLED = 'CANCELLED',
+}
+
 @Entity('order_items')
 export class OrderItem {
   @PrimaryGeneratedColumn('uuid')
@@ -34,4 +41,7 @@ export class OrderItem {
 
   @Column('decimal', { precision: 12, scale: 2 })
   subtotal: number;
+
+  @Column({ default: OrderItemStatus.PAID })
+  status: OrderItemStatus;
 }
