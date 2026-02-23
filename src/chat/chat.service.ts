@@ -242,13 +242,31 @@ export class ChatService {
     return { message: 'Conversacion bloqueada correctamente' };
   }
 
-  async deleteConversation(id: string) {
+  async deleteConversation(id: string, userId: string) {
+    const conversation = await this.conversationRepo.findOne({
+      where: { id },
+    });
+    if (!conversation) {
+      throw new NotFoundException('Conversacion no encontrada');
+    }
+    const isParticipant = await this.isUserInConversation(userId, id);
+    if (!isParticipant) {
+      throw new ForbiddenException(
+        'No tienes permiso para eliminar esta conversacion',
+      );
+    }
+    conversation.isActive = false;
+    await this.conversationRepo.save(conversation);
+    return { message: 'Conversacion eliminada correctamente' };
+  }
+
+  async deleteConversationAsAdmin(id: string) {
     const conversation = await this.conversationRepo.findOneBy({ id });
     if (!conversation) {
       throw new NotFoundException('Conversacion no encontrada');
     }
     conversation.isActive = false;
     await this.conversationRepo.save(conversation);
-    return { message: 'Conversacion eliminada correctamente' };
+    return { message: 'Conversacion eliminada correctamente por admin' };
   }
 }
