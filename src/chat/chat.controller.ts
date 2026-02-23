@@ -72,16 +72,15 @@ export class ChatController {
   }
 
   @Delete(':id')
-  @Roles(Role.Admin)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async deleteConversation(@Param('id') id: string) {
-    return this.chatService.deleteConversation(id);
+  @UseGuards(JwtAuthGuard)
+  async deleteConversation(@Param('id') id: string, @Req() req) {
+    return this.chatService.deleteConversation(id, req.user.id);
   }
 
   @Delete('admin/conversation/:id')
   @Roles(Role.Admin)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async deleteConversationAsAdmin(@Param('id') id: string) {
-    return this.chatService.deleteConversation(id);
+    return this.chatService.deleteConversationAsAdmin(id);
   }
 }
