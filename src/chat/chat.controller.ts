@@ -48,6 +48,13 @@ export class ChatController {
     return this.chatService.getMessages(id, req.user.id);
   }
 
+  @Get('admin/conversation/:id/messages')
+  @Roles(Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  getMessagesAsAdmin(@Param('id') id: string, @Req() req) {
+    return this.chatService.getMessagesAsAdmin(id, req.user.id);
+  }
+
   @Post('support')
   @UseGuards(JwtAuthGuard)
   async createSupportConversation(
@@ -68,6 +75,13 @@ export class ChatController {
   @Roles(Role.Admin)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async deleteConversation(@Param('id') id: string) {
+    return this.chatService.deleteConversation(id);
+  }
+
+  @Delete('admin/conversation/:id')
+  @Roles(Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async deleteConversationAsAdmin(@Param('id') id: string) {
     return this.chatService.deleteConversation(id);
   }
 }
