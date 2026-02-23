@@ -1,9 +1,8 @@
 import {
   BadRequestException,
   ForbiddenException,
-  forwardRef,
-  Inject,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Conversation } from './entities/conversation.entity';
@@ -13,7 +12,6 @@ import { ConversationParticipant } from './entities/conversation-participant.ent
 import { CreateConversationDto } from './dto/conversation.dto';
 import { Users } from 'src/users/entities/users.entity';
 import { CreateMessageDto } from './dto/create-message.dto';
-import { ChatGateway } from './chat.gateway';
 
 @Injectable()
 export class ChatService {
@@ -22,8 +20,6 @@ export class ChatService {
     private conversationRepo: Repository<Conversation>,
     @InjectRepository(Message)
     private messageRepo: Repository<Message>,
-    @Inject(forwardRef(() => ChatGateway))
-    private chatGateway: ChatGateway,
     @InjectRepository(ConversationParticipant)
     private participantRepo: Repository<ConversationParticipant>,
     @InjectRepository(Users)
@@ -67,12 +63,24 @@ export class ChatService {
 
   async createMessage(senderId: string, dto: CreateMessageDto) {
     const { conversationId, content } = dto;
+    const conversation = await this.conversationRepo.findOne({
+      where: { id: conversationId },
+    });
+    if (!conversation) {
+      throw new NotFoundException('Conversacion no encontrada');
+    }
+    if (!conversation.isActive) {
+      throw new ForbiddenException('Esta conversacion fue eliminada');
+    }
+    if (conversation.isBlocked) {
+      throw new ForbiddenException('Esta conversacion esta bloqueada');
+    }
     const isParticipant = await this.isUserInConversation(
       senderId,
       conversationId,
     );
     if (!isParticipant) {
-      throw new ForbiddenException('No perteneces a esta conversación');
+      throw new ForbiddenException('No perteneces a esta conversacion');
     }
     const message = this.messageRepo.create({
       content,
@@ -84,7 +92,6 @@ export class ChatService {
       where: { id: savedMessage.id },
       relations: ['sender'],
     });
-    this.chatGateway.server.to(conversationId).emit('newMessage', fullMessage);
     return fullMessage;
   }
 
@@ -102,6 +109,7 @@ export class ChatService {
     return this.participantRepo.find({
       where: {
         user: { id: userId },
+        conversation: { isActive: true },
       },
       relations: ['conversation'],
     });
@@ -113,7 +121,10 @@ export class ChatService {
       relations: ['conversation', 'user'],
     });
     if (!participant) {
-      throw new ForbiddenException('No perteneces a esta conversación');
+      throw new ForbiddenException('No perteneces a esta conversacion');
+    }
+    if (!participant.conversation?.isActive) {
+      throw new NotFoundException('Conversacion no encontrada');
     }
     const messages = await this.messageRepo.find({
       where: { conversation: { id: conversationId } },
@@ -124,6 +135,29 @@ export class ChatService {
       {
         conversation: { id: conversationId },
         sender: { id: Not(userId) },
+        isRead: false,
+      },
+      { isRead: true },
+    );
+    return messages;
+  }
+
+  async getMessagesAsAdmin(conversationId: string, adminId: string) {
+    const conversation = await this.conversationRepo.findOne({
+      where: { id: conversationId, isActive: true },
+    });
+    if (!conversation) {
+      throw new NotFoundException('Conversacion no encontrada');
+    }
+    const messages = await this.messageRepo.find({
+      where: { conversation: { id: conversationId } },
+      relations: ['sender'],
+      order: { createdAt: 'ASC' },
+    });
+    await this.messageRepo.update(
+      {
+        conversation: { id: conversationId },
+        sender: { id: Not(adminId) },
         isRead: false,
       },
       { isRead: true },
@@ -148,5 +182,91 @@ export class ChatService {
       .andWhere('cp1.userId = :userId1', { userId1 })
       .andWhere('cp2.userId = :userId2', { userId2 })
       .getOne();
+  }
+
+  async createSupportConversation(
+    userId: string,
+    body: { subject: string; detail: string },
+  ) {
+    const admin = await this.usersRepo.findOne({
+      where: { isSupportAdmin: true },
+    });
+    if (!admin) {
+      throw new NotFoundException('No hay administrador de soporte disponible');
+    }
+    const existingConversation = await this.conversationRepo
+      .createQueryBuilder('conversation')
+      .innerJoin('conversation.participants', 'p1')
+      .innerJoin('conversation.participants', 'p2')
+      .where('conversation.type = :type', { type: 'SUPPORT' })
+      .andWhere('conversation.isActive = true')
+      .andWhere('p1.userId = :userId', { userId })
+      .andWhere('p2.userId = :adminId', { adminId: admin.id })
+      .getOne();
+    let conversation = existingConversation;
+    if (!conversation) {
+      conversation = this.conversationRepo.create({
+        type: 'SUPPORT',
+        isActive: true,
+        isBlocked: false,
+      });
+      await this.conversationRepo.save(conversation);
+      const participants = [
+        this.participantRepo.create({
+          conversation,
+          user: { id: userId },
+        }),
+        this.participantRepo.create({
+          conversation,
+          user: { id: admin.id },
+        }),
+      ];
+      await this.participantRepo.save(participants);
+    }
+    const message = this.messageRepo.create({
+      content: `Asunto: ${body.subject}\n\n${body.detail}`,
+      conversation: { id: conversation.id } as Conversation,
+      sender: { id: userId } as Users,
+    });
+    await this.messageRepo.save(message);
+    return conversation;
+  }
+
+  async blockConversation(id: string) {
+    const conversation = await this.conversationRepo.findOneBy({ id });
+    if (!conversation) {
+      throw new NotFoundException('Conversacion no encontrada');
+    }
+    conversation.isBlocked = true;
+    await this.conversationRepo.save(conversation);
+    return { message: 'Conversacion bloqueada correctamente' };
+  }
+
+  async deleteConversation(id: string, userId: string) {
+    const conversation = await this.conversationRepo.findOne({
+      where: { id },
+    });
+    if (!conversation) {
+      throw new NotFoundException('Conversacion no encontrada');
+    }
+    const isParticipant = await this.isUserInConversation(userId, id);
+    if (!isParticipant) {
+      throw new ForbiddenException(
+        'No tienes permiso para eliminar esta conversacion',
+      );
+    }
+    conversation.isActive = false;
+    await this.conversationRepo.save(conversation);
+    return { message: 'Conversacion eliminada correctamente' };
+  }
+
+  async deleteConversationAsAdmin(id: string) {
+    const conversation = await this.conversationRepo.findOneBy({ id });
+    if (!conversation) {
+      throw new NotFoundException('Conversacion no encontrada');
+    }
+    conversation.isActive = false;
+    await this.conversationRepo.save(conversation);
+    return { message: 'Conversacion eliminada correctamente por admin' };
   }
 }

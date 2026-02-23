@@ -9,7 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
-import { forwardRef, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
@@ -21,7 +21,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
   constructor(
     private jwtService: JwtService,
-    @Inject(forwardRef(() => ChatService))
     private chatService: ChatService,
   ) {}
 
@@ -66,5 +65,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(
       `Usuario ${user.sub} se unió a la conversación ${conversationId}`,
     );
+  }
+
+  @SubscribeMessage('sendMessage')
+  async handleSendMessage(
+    client: Socket,
+    payload: { conversationId: string; content: string },
+  ) {
+    const user = client.data.user;
+    const message = await this.chatService.createMessage(user.sub, payload);
+    this.server.to(payload.conversationId).emit('newMessage', message);
+    return message;
   }
 }
