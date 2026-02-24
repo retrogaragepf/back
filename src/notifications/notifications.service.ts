@@ -14,35 +14,39 @@ export class NotificationsService {
     private readonly productsService: ProductsDbService,
   ) {}
 
-  // @Cron('0 20 13 * * *', {
-  //   timeZone: 'America/Bogota',
-  // })
-  @Cron('0 * * * * *') // 👈 para pruebas
+  @Cron('0 30 13 * * *', {
+    timeZone: 'America/Bogota',
+  })
   async sendDailyHighlights() {
-    console.log('⏰ Enviando resumen diario 1:20 PM...');
+    console.log('Enviando resumen diario 1:30 PM...');
     try {
       const activeUsers = await this.usersService.getActiveUsers();
       if (!activeUsers.length) {
         console.log('No hay usuarios activos.');
         return;
       }
+      const usersToNotify = activeUsers.slice(0, 10);
       const totalUsers = activeUsers.length;
       const totalOrders = await this.ordersService.getTotalOrders();
       const totalProducts = await this.productsService.getTotalProducts();
-      await Promise.all(
-        activeUsers.map((user) =>
-          this.emailService.sendDailySummary(
-            user.email,
-            user.name,
-            totalUsers,
-            totalOrders,
-            totalProducts,
-          ),
-        ),
+      console.log(
+        `Usuarios activos: ${totalUsers} | Órdenes: ${totalOrders} | Productos: ${totalProducts}`,
       );
-      console.log(`✅ Resumen enviado a ${totalUsers} usuarios activos.`);
+      for (const user of usersToNotify) {
+        await this.emailService.sendDailySummary(
+          user.email,
+          user.name,
+          totalUsers,
+          totalOrders,
+          totalProducts,
+        );
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      console.log(
+        `Resumen enviado correctamente a ${usersToNotify.length} usuarios.`,
+      );
     } catch (error) {
-      console.error('❌ Error en cron:', error);
+      console.error('Error en cron:', error);
     }
   }
 }
