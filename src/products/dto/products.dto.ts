@@ -4,7 +4,9 @@ import {
   IsNotEmpty,
   IsNumber,
   IsPositive,
+  IsOptional,
   IsString,
+  IsUrl,
   IsUUID,
   Min,
 } from 'class-validator';
@@ -59,4 +61,14 @@ export class CreateProductDto {
     example: '0ee8f77a-f74e-4b19-871c-f4a89d37352f',
   })
   categoryId: string;
+
+  @IsOptional()
+  @IsString({ message: 'Image URL must be a string.' })
+  @IsUrl({}, { message: 'Image URL must be a valid URL.' })
+  @ApiProperty({
+    description: 'Optional URL of an already uploaded image.',
+    example: 'https://res.cloudinary.com/demo/image/upload/v1/products/item.webp',
+    required: false,
+  })
+  imgUrl?: string;
 }
