@@ -129,4 +129,8 @@ export class ProductsDbService {
     product.status = ProductStatus.REJECTED;
     return await this.productsRepository.save(product);
   }
+
+  async getTotalProducts(): Promise<number> {
+    return this.productsRepository.count();
+  }
 }

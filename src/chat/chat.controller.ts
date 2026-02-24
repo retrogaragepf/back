@@ -71,6 +71,11 @@ export class ChatController {
     return this.chatService.blockConversation(id);
   }
 
+  @Patch(':id/unblock')
+  unblockConversation(@Param('id') id: string) {
+    return this.chatService.unblockConversation(id);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async deleteConversation(@Param('id') id: string, @Req() req) {
