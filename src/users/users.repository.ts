@@ -97,6 +97,22 @@ export class UsersRepository {
     return userNoPassword;
   }
 
+  async updateMyAvatar(
+    id: string,
+    data: { avatarPublicId?: string | null; avatarUrl?: string | null },
+  ): Promise<{ avatarPublicId: string | null; avatarUrl: string | null }> {
+    const user = await this.ormUsersRepository.findOneBy({ id });
+    if (!user) throw new NotFoundException(`No existe usuario con id ${id}`);
+    if ('avatarPublicId' in data)
+      user.avatarPublicId = data.avatarPublicId ?? null;
+    if ('avatarUrl' in data) user.avatarUrl = data.avatarUrl ?? null;
+    const savedUser = await this.ormUsersRepository.save(user);
+    return {
+      avatarPublicId: savedUser.avatarPublicId,
+      avatarUrl: savedUser.avatarUrl,
+    };
+  }
+
   async deleteUser(id: string) {
     const foundUser = await this.ormUsersRepository.findOneBy({
       id,

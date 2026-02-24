@@ -3,6 +3,7 @@ import {
   IsEmail,
   IsEmpty,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsStrongPassword,
   MaxLength,
@@ -69,8 +70,37 @@ export class LoginUserDto extends PickType(CreateUserDto, [
 ]) {}
 
 export class UpdateUserDto {
-  address: String;
-  phone: string;
-  city: string;
-  country: string;
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @IsOptional()
+  @IsString()
+  avatarPublicId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  avatarUrl?: string | null;
+}
+
+export class UpdateMyAvatarDto {
+  @IsOptional()
+  @IsString()
+  avatarPublicId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  avatarUrl?: string | null;
 }

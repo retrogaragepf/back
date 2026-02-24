@@ -21,6 +21,13 @@ export class UsersService {
     return await this.usersRepository.updateUser(id, updateUserData);
   }
 
+  async updateMyAvatar(
+    id: string,
+    data: { avatarPublicId?: string | null; avatarUrl?: string | null },
+  ) {
+    return await this.usersRepository.updateMyAvatar(id, data);
+  }
+
   async deleteUser(id: string) {
     return await this.usersRepository.deleteUser(id);
   }

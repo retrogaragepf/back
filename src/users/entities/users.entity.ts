@@ -32,6 +32,20 @@ export class Users {
 
   @Column({
     type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  avatarPublicId: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  avatarUrl: string | null;
+
+  @Column({
+    type: 'varchar',
     length: 20,
     nullable: true,
   })
