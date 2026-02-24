@@ -10,6 +10,6 @@ import { Cart } from 'src/carts/entities/cart.entity';
   imports: [TypeOrmModule.forFeature([Users, Cart])],
   controllers: [UsersController],
   providers: [UsersService, UsersRepository],
-  exports: [UsersRepository],
+  exports: [UsersRepository, UsersService],
 })
 export class UsersModule {}

@@ -107,4 +107,8 @@ export class OrdersService {
 
     return order;
   }
+
+  async getTotalOrders(): Promise<number> {
+    return this.orderRepository.count();
+  }
 }

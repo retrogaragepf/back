@@ -15,12 +15,17 @@ export class UsersRepository {
   ) {}
 
   async getAllUsers(): Promise<Omit<Users, 'password'>[]> {
-  const allUsers = await this.ormUsersRepository.find({
-    where: { isActive: true },
-  });
+    const allUsers = await this.ormUsersRepository.find({
+      where: { isActive: true },
+    });
+    return allUsers.map(({ password, ...userNoPassword }) => userNoPassword);
+  }
 
-  return allUsers.map(({ password, ...userNoPassword }) => userNoPassword);
-}
+  async getActiveUsers() {
+    return this.ormUsersRepository.find({
+      where: { isActive: true },
+    });
+  }
 
   async getUserById(id: string): Promise<Omit<Users, 'password' | 'isAdmin'>> {
     const foundUser = await this.ormUsersRepository.findOne({
@@ -51,12 +56,9 @@ export class UsersRepository {
         isActive: true,
         isAdmin: false,
       });
-
       const savedUser = await manager.save(user);
-
       const cart = manager.create(Cart, { user: savedUser });
       await manager.save(cart);
-
       return savedUser;
     });
   }
@@ -75,15 +77,11 @@ export class UsersRepository {
       isActive: true,
       isAdmin: false,
     });
-
     const savedUser = await this.ormUsersRepository.save(user);
-
     const cart = this.cartsRepository.create({
       user: savedUser,
     });
-
     await this.cartsRepository.save(cart);
-
     return savedUser;
   }
 
