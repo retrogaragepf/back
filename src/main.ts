@@ -34,8 +34,8 @@ async function bootstrap() {
     )
     .setVersion('1.0.0')
     .addBearerAuth()
-    .addServer('http://localhost:3002')
     .addServer('https://back-0o27.onrender.com')
+    .addServer('http://localhost:3002')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
