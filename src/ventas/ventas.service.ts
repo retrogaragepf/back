@@ -25,7 +25,7 @@ export class VentasService {
       .leftJoinAndSelect('order.user', 'buyer')
 
       .leftJoinAndSelect('venta.product', 'product')
-      .leftJoinAndSelect('product.user', 'seller') // ⚠ si se llama user cambia esto
+      .leftJoinAndSelect('product.user', 'seller')
 
       .select([
         'venta.id',
@@ -101,7 +101,7 @@ export class VentasService {
   ) {
     const item = await this.orderItemsRepository.findOne({
       where: { id: orderItemId },
-      relations: ['product', 'product.seller'],
+      relations: ['product', 'product.user'],
     });
 
     if (!item) {
