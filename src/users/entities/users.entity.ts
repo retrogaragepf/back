@@ -1,6 +1,7 @@
 import { Cart } from 'src/carts/entities/cart.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/products.entity';
+import { Notification } from 'src/notifications/entities/notifications.entity';
 import {
   Column,
   CreateDateColumn,
@@ -66,4 +67,7 @@ export class Users {
 
   @OneToMany(() => Order, (order) => order.user)
   orders: Order[];
+
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Notification[];
 }
