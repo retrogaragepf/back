@@ -67,6 +67,9 @@ export class UsersController {
     return await this.userService.updateMyAvatar(req.user.id, avatarData);
   }
 
+  @ApiBearerAuth()
+  @Roles(Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
   async deleteUser(@Param('id', ParseUUIDPipe) id: string) {
     return await this.userService.deleteUser(id);
