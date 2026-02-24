@@ -17,6 +17,49 @@ export class VentasService {
     private readonly orderItemsRepository: Repository<OrderItem>,
   ) {}
 
+  async getAllSalesForAdmin() {
+    const ventas = await this.orderItemsRepository
+      .createQueryBuilder('venta')
+
+      .leftJoinAndSelect('venta.order', 'order')
+      .leftJoinAndSelect('order.user', 'buyer')
+
+      .leftJoinAndSelect('venta.product', 'product')
+      .leftJoinAndSelect('product.user', 'seller') // ⚠ si se llama user cambia esto
+
+      .select([
+        'venta.id',
+        'venta.title',
+        'venta.unitPrice',
+        'venta.quantity',
+        'venta.subtotal',
+        'venta.status',
+
+        'order.id',
+        'order.total',
+        'order.status',
+        'order.trackingCode',
+        'order.createdAt',
+        'order.updatedAt',
+
+        'buyer.id',
+        'buyer.name',
+        'buyer.email',
+
+        'product.id',
+        'product.title',
+
+        'seller.id',
+        'seller.name',
+        'seller.email',
+      ])
+
+      .orderBy('order.createdAt', 'DESC')
+      .getMany();
+
+    return ventas;
+  }
+
   async getSellerSales(sellerId: string, status?: OrderItemStatus) {
     const qb = this.orderItemsRepository
       .createQueryBuilder('item')
