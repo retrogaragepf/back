@@ -242,6 +242,19 @@ export class ChatService {
     return { message: 'Conversacion bloqueada correctamente' };
   }
 
+  async unblockConversation(id: string) {
+    const conversation = await this.conversationRepo.findOneBy({ id });
+    if (!conversation) {
+      throw new NotFoundException('Conversación no encontrada');
+    }
+    if (!conversation.isBlocked) {
+      return { message: 'La conversación ya está desbloqueada' };
+    }
+    conversation.isBlocked = false;
+    await this.conversationRepo.save(conversation);
+    return { message: 'Conversación desbloqueada correctamente' };
+  }
+
   async deleteConversation(id: string, userId: string) {
     const conversation = await this.conversationRepo.findOne({
       where: { id },
