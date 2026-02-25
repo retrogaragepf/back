@@ -26,7 +26,7 @@ export class VentasService {
       .leftJoinAndSelect('order.user', 'buyer')
 
       .leftJoinAndSelect('venta.product', 'product')
-      .leftJoinAndSelect('product.user', 'seller') // ⚠ si se llama user cambia esto
+      .leftJoinAndSelect('product.user', 'seller')
 
       .select([
         'venta.id',
