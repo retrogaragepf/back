@@ -13,6 +13,25 @@ import { CreateConversationDto } from './dto/conversation.dto';
 import { Users } from 'src/users/entities/users.entity';
 import { CreateMessageDto } from './dto/create-message.dto';
 
+type ConversationSummaryParticipant = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  isAdmin: boolean;
+  isSupportAdmin: boolean;
+};
+
+type ConversationSummary = {
+  id: string;
+  type: 'PRIVATE' | 'SUPPORT';
+  isActive: boolean;
+  isBlocked: boolean;
+  createdAt: Date;
+  participants: ConversationSummaryParticipant[];
+  lastMessage: string | null;
+  timestamp: Date;
+};
+
 @Injectable()
 export class ChatService {
   constructor(
@@ -113,6 +132,44 @@ export class ChatService {
       },
       relations: ['conversation'],
     });
+  }
+
+  async getConversationsAsAdmin(): Promise<ConversationSummary[]> {
+    const conversations = await this.conversationRepo.find({
+      where: { isActive: true },
+      relations: ['participants', 'participants.user'],
+    });
+
+    const withLastMessage = await Promise.all(
+      conversations.map(async (conversation) => {
+        const lastMessage = await this.messageRepo.findOne({
+          where: { conversation: { id: conversation.id } },
+          order: { createdAt: 'DESC' },
+        });
+
+        return {
+          id: conversation.id,
+          type: conversation.type,
+          isActive: conversation.isActive,
+          isBlocked: conversation.isBlocked,
+          createdAt: conversation.createdAt,
+          participants: conversation.participants.map((participant) => ({
+            id: participant.user?.id ?? participant.userId,
+            name: participant.user?.name ?? null,
+            email: participant.user?.email ?? null,
+            isAdmin: participant.user?.isAdmin ?? false,
+            isSupportAdmin: participant.user?.isSupportAdmin ?? false,
+          })),
+          lastMessage: lastMessage?.content ?? null,
+          timestamp: lastMessage?.createdAt ?? conversation.createdAt,
+        };
+      }),
+    );
+
+    return withLastMessage.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
   }
 
   async getMessages(conversationId: string, userId: string) {
