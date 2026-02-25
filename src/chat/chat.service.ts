@@ -132,15 +132,12 @@ export class ChatService {
       },
       relations: ['conversation'],
     });
-
     if (conversations.length === 0) {
       return conversations;
     }
-
     const conversationIds = conversations.map(
       (conversation) => conversation.conversationId,
     );
-
     const unreadRows = await this.messageRepo
       .createQueryBuilder('message')
       .innerJoin('message.conversation', 'conversation')
@@ -152,15 +149,12 @@ export class ChatService {
       .andWhere('sender.id != :userId', { userId })
       .groupBy('conversation.id')
       .getRawMany<{ conversationId: string; unreadCount: string }>();
-
     const unreadCountByConversation = new Map(
       unreadRows.map((row) => [row.conversationId, Number(row.unreadCount)]),
     );
-
     return conversations.map((conversation) => {
       const unreadCount =
         unreadCountByConversation.get(conversation.conversationId) ?? 0;
-
       return {
         ...conversation,
         unreadCount,
@@ -176,14 +170,12 @@ export class ChatService {
       where: { isActive: true },
       relations: ['participants', 'participants.user'],
     });
-
     const withLastMessage = await Promise.all(
       conversations.map(async (conversation) => {
         const lastMessage = await this.messageRepo.findOne({
           where: { conversation: { id: conversation.id } },
           order: { createdAt: 'DESC' },
         });
-
         return {
           id: conversation.id,
           type: conversation.type,
