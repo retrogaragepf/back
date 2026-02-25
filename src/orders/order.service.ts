@@ -7,17 +7,21 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
+import { OrderItemStatus } from './entities/order-item.entity';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from 'src/notifications/notification-type.enum';
 
 @Injectable()
 export class OrdersService {
   constructor(
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async getAllOrders() {
     return this.orderRepository.find({
-      relations: ['user', 'orderItems', 'orderItems.product'],
+      relations: ['user', 'items', 'items.product'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -25,57 +29,118 @@ export class OrdersService {
   async dispatchOrder(orderId: string, sellerId: string) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
-      relations: [
-        'orderItems',
-        'orderItems.product',
-        'orderItems.product.user',
-      ],
+      relations: ['user', 'items', 'items.product', 'items.product.user'],
     });
 
     if (!order) {
       throw new NotFoundException('Order not found');
     }
 
-    if (order.status !== OrderStatus.PAID) {
-      throw new BadRequestException('Order must be PAID to dispatch');
+    if (
+      order.status !== OrderStatus.PAID &&
+      order.status !== OrderStatus.SHIPPED
+    ) {
+      throw new BadRequestException('Order must be PAID or SHIPPED to dispatch');
     }
 
-    // validar que el vendedor sea dueño del producto
-    const isSeller = order.items.every(
+    const sellerItems = order.items.filter(
       (item) => item.product.user.id === sellerId,
     );
-
-    if (!isSeller) {
+    if (!sellerItems.length) {
       throw new ForbiddenException('You are not the seller of this order');
     }
 
+    let hasDispatchedItems = false;
+    for (const item of sellerItems) {
+      if (item.status === OrderItemStatus.PAID) {
+        item.status = OrderItemStatus.SHIPPED;
+        hasDispatchedItems = true;
+      }
+    }
+
+    if (!hasDispatchedItems) {
+      throw new BadRequestException('No PAID items available to dispatch');
+    }
+
     order.status = OrderStatus.SHIPPED;
-    return this.orderRepository.save(order);
+    const savedOrder = await this.orderRepository.save(order);
+
+    try {
+      await this.notificationsService.createNotification(
+        order.user.id,
+        NotificationType.ORDER_SHIPPED,
+        `Tu pedido ${order.id} fue marcado como enviado.`,
+      );
+    } catch (error) {
+      console.error('Error creating shipped notification:', error);
+    }
+
+    return savedOrder;
   }
 
   async receiveOrder(orderId: string, buyerId: string) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
-      relations: ['user'],
+      relations: ['user', 'items', 'items.product', 'items.product.user'],
     });
 
     if (!order) {
       throw new NotFoundException('Order not found');
     }
 
-    if (order.status !== OrderStatus.SHIPPED) {
+    const allItemsShippedOrDelivered = order.items.every(
+      (item) =>
+        item.status === OrderItemStatus.SHIPPED ||
+        item.status === OrderItemStatus.DELIVERED,
+    );
+
+    if (!allItemsShippedOrDelivered) {
       throw new BadRequestException(
-        'Order must be SHIPPED to confirm delivery',
+        'All order items must be SHIPPED to confirm delivery',
       );
     }
 
-    // validar que sea el comprador
     if (order.user.id !== buyerId) {
       throw new ForbiddenException('You are not the buyer of this order');
     }
 
+    for (const item of order.items) {
+      if (item.status === OrderItemStatus.SHIPPED) {
+        item.status = OrderItemStatus.DELIVERED;
+      }
+    }
+
     order.status = OrderStatus.DELIVERED;
-    return this.orderRepository.save(order);
+    const savedOrder = await this.orderRepository.save(order);
+
+    const sellerIds = Array.from(
+      new Set(
+        order.items
+          .map((item) => item.product.user?.id)
+          .filter((id): id is string => Boolean(id && id !== buyerId)),
+      ),
+    );
+
+    try {
+      await Promise.all([
+        this.notificationsService.createNotification(
+          buyerId,
+          NotificationType.ORDER_DELIVERED,
+          `Tu pedido ${order.id} fue marcado como entregado.`,
+        ),
+        ...sellerIds.map((sellerId) =>
+          this.notificationsService.createNotification(
+            sellerId,
+            NotificationType.ORDER_DELIVERED,
+            `El pedido ${order.id} fue confirmado como entregado por el comprador.`,
+          ),
+        ),
+      ]);
+    } catch (error) {
+      console.error('Error creating delivered notifications:', error);
+    }
+
+    return savedOrder;
   }
 
   async getUserOrders(userId: string) {

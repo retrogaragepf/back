@@ -13,6 +13,25 @@ import { CreateConversationDto } from './dto/conversation.dto';
 import { Users } from 'src/users/entities/users.entity';
 import { CreateMessageDto } from './dto/create-message.dto';
 
+type ConversationSummaryParticipant = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  isAdmin: boolean;
+  isSupportAdmin: boolean;
+};
+
+type ConversationSummary = {
+  id: string;
+  type: 'PRIVATE' | 'SUPPORT';
+  isActive: boolean;
+  isBlocked: boolean;
+  createdAt: Date;
+  participants: ConversationSummaryParticipant[];
+  lastMessage: string | null;
+  timestamp: Date;
+};
+
 @Injectable()
 export class ChatService {
   constructor(
@@ -61,7 +80,10 @@ export class ChatService {
     return conversation;
   }
 
-  async createMessage(senderId: string, dto: CreateMessageDto) {
+  async createMessage(
+    senderId: string,
+    dto: CreateMessageDto,
+  ): Promise<Message> {
     const { conversationId, content } = dto;
     const conversation = await this.conversationRepo.findOne({
       where: { id: conversationId },
@@ -92,6 +114,9 @@ export class ChatService {
       where: { id: savedMessage.id },
       relations: ['sender'],
     });
+    if (!fullMessage) {
+      throw new NotFoundException('Mensaje no encontrado');
+    }
     return fullMessage;
   }
 
@@ -106,13 +131,84 @@ export class ChatService {
   }
 
   async getUserConversations(userId: string) {
-    return this.participantRepo.find({
+    const conversations = await this.participantRepo.find({
       where: {
         user: { id: userId },
         conversation: { isActive: true },
       },
-      relations: ['conversation'],
+      relations: [
+        'conversation',
+        'conversation.participants',
+        'conversation.participants.user',
+      ],
     });
+    if (conversations.length === 0) {
+      return conversations;
+    }
+    const conversationIds = conversations.map(
+      (conversation) => conversation.conversationId,
+    );
+    const unreadRows = await this.messageRepo
+      .createQueryBuilder('message')
+      .innerJoin('message.conversation', 'conversation')
+      .innerJoin('message.sender', 'sender')
+      .select('conversation.id', 'conversationId')
+      .addSelect('COUNT(message.id)', 'unreadCount')
+      .where('conversation.id IN (:...conversationIds)', { conversationIds })
+      .andWhere('message.isRead = :isRead', { isRead: false })
+      .andWhere('sender.id != :userId', { userId })
+      .groupBy('conversation.id')
+      .getRawMany<{ conversationId: string; unreadCount: string }>();
+    const unreadCountByConversation = new Map(
+      unreadRows.map((row) => [row.conversationId, Number(row.unreadCount)]),
+    );
+    return conversations.map((conversation) => {
+      const unreadCount =
+        unreadCountByConversation.get(conversation.conversationId) ?? 0;
+      return {
+        ...conversation,
+        unreadCount,
+        conversation: conversation.conversation
+          ? { ...conversation.conversation, unreadCount }
+          : conversation.conversation,
+      };
+    });
+  }
+
+  async getConversationsAsAdmin(): Promise<ConversationSummary[]> {
+    const conversations = await this.conversationRepo.find({
+      where: { isActive: true },
+      relations: ['participants', 'participants.user'],
+    });
+    const withLastMessage = await Promise.all(
+      conversations.map(async (conversation) => {
+        const lastMessage = await this.messageRepo.findOne({
+          where: { conversation: { id: conversation.id } },
+          order: { createdAt: 'DESC' },
+        });
+        return {
+          id: conversation.id,
+          type: conversation.type,
+          isActive: conversation.isActive,
+          isBlocked: conversation.isBlocked,
+          createdAt: conversation.createdAt,
+          participants: conversation.participants.map((participant) => ({
+            id: participant.user?.id ?? participant.userId,
+            name: participant.user?.name ?? null,
+            email: participant.user?.email ?? null,
+            isAdmin: participant.user?.isAdmin ?? false,
+            isSupportAdmin: participant.user?.isSupportAdmin ?? false,
+          })),
+          lastMessage: lastMessage?.content ?? null,
+          timestamp: lastMessage?.createdAt ?? conversation.createdAt,
+        };
+      }),
+    );
+
+    return withLastMessage.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
   }
 
   async getMessages(conversationId: string, userId: string) {
@@ -253,24 +349,6 @@ export class ChatService {
     conversation.isBlocked = false;
     await this.conversationRepo.save(conversation);
     return { message: 'Conversación desbloqueada correctamente' };
-  }
-
-  async deleteConversation(id: string, userId: string) {
-    const conversation = await this.conversationRepo.findOne({
-      where: { id },
-    });
-    if (!conversation) {
-      throw new NotFoundException('Conversacion no encontrada');
-    }
-    const isParticipant = await this.isUserInConversation(userId, id);
-    if (!isParticipant) {
-      throw new ForbiddenException(
-        'No tienes permiso para eliminar esta conversacion',
-      );
-    }
-    conversation.isActive = false;
-    await this.conversationRepo.save(conversation);
-    return { message: 'Conversacion eliminada correctamente' };
   }
 
   async deleteConversationAsAdmin(id: string) {
