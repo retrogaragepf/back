@@ -18,22 +18,39 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { Roles } from 'src/decorators/roles.decorator';
 import { Role } from 'src/users/roles.enum';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { ChatGateway } from './chat.gateway';
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('chat')
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly chatGateway: ChatGateway,
+  ) {}
 
   @Post('conversation')
+  @Post('conversations')
   createConversation(@Body() dto: CreateConversationDto) {
     return this.chatService.createConversation(dto);
   }
 
   @Post('message')
-  createMessage(@Req() req, @Body() dto: CreateMessageDto) {
+  async createMessage(@Req() req, @Body() dto: CreateMessageDto) {
     const senderId: string = req.user.id;
-    return this.chatService.createMessage(senderId, dto);
+    const message = await this.chatService.createMessage(senderId, dto);
+
+    this.chatGateway.server.to(dto.conversationId).emit('newMessage', {
+      id: message.id,
+      content: message.content,
+      isRead: message.isRead,
+      createdAt: message.createdAt,
+      sender: message.sender,
+      conversationId: dto.conversationId,
+      senderId: message.sender?.id ?? senderId,
+    });
+
+    return message;
   }
 
   @UseGuards(JwtAuthGuard, NotBlockedGuard)

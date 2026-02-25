@@ -130,7 +130,11 @@ export class ChatService {
         user: { id: userId },
         conversation: { isActive: true },
       },
-      relations: ['conversation'],
+      relations: [
+        'conversation',
+        'conversation.participants',
+        'conversation.participants.user',
+      ],
     });
     if (conversations.length === 0) {
       return conversations;
