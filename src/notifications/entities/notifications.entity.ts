@@ -26,6 +26,7 @@ export class Notification {
   @Column({
     type: 'enum',
     enum: NotificationType,
+    default: NotificationType.DAILY_SUMMARY,
   })
   type: NotificationType;
 
