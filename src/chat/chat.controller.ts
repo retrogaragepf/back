@@ -95,15 +95,11 @@ export class ChatController {
     return this.chatService.blockConversation(id);
   }
 
+  @Roles(Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id/unblock')
   unblockConversation(@Param('id') id: string) {
     return this.chatService.unblockConversation(id);
-  }
-
-  @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  async deleteConversation(@Param('id') id: string, @Req() req) {
-    return this.chatService.deleteConversation(id, req.user.id);
   }
 
   @Delete('admin/conversation/:id')
