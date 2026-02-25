@@ -7,6 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Users } from 'src/users/entities/users.entity';
+import { NotificationType } from '../notification-type.enum';
 
 @Entity('notifications')
 export class Notification {
@@ -22,8 +23,11 @@ export class Notification {
   @JoinColumn({ name: 'userId' })
   user: Users;
 
-  @Column()
-  type: string;
+  @Column({
+    type: 'enum',
+    enum: NotificationType,
+  })
+  type: NotificationType;
 
   @Column()
   message: string;

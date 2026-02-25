@@ -36,19 +36,30 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    if (order.status !== OrderStatus.PAID) {
-      throw new BadRequestException('Order must be PAID to dispatch');
+    if (
+      order.status !== OrderStatus.PAID &&
+      order.status !== OrderStatus.SHIPPED
+    ) {
+      throw new BadRequestException('Order must be PAID or SHIPPED to dispatch');
     }
 
-    const isSeller = order.items.every((item) => item.product.user.id === sellerId);
-    if (!isSeller) {
+    const sellerItems = order.items.filter(
+      (item) => item.product.user.id === sellerId,
+    );
+    if (!sellerItems.length) {
       throw new ForbiddenException('You are not the seller of this order');
     }
 
-    for (const item of order.items) {
+    let hasDispatchedItems = false;
+    for (const item of sellerItems) {
       if (item.status === OrderItemStatus.PAID) {
         item.status = OrderItemStatus.SHIPPED;
+        hasDispatchedItems = true;
       }
+    }
+
+    if (!hasDispatchedItems) {
+      throw new BadRequestException('No PAID items available to dispatch');
     }
 
     order.status = OrderStatus.SHIPPED;
