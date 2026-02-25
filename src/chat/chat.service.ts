@@ -80,7 +80,7 @@ export class ChatService {
     return conversation;
   }
 
-  async createMessage(senderId: string, dto: CreateMessageDto) {
+  async createMessage(senderId: string, dto: CreateMessageDto): Promise<Message> {
     const { conversationId, content } = dto;
     const conversation = await this.conversationRepo.findOne({
       where: { id: conversationId },
@@ -111,6 +111,9 @@ export class ChatService {
       where: { id: savedMessage.id },
       relations: ['sender'],
     });
+    if (!fullMessage) {
+      throw new NotFoundException('Mensaje no encontrado');
+    }
     return fullMessage;
   }
 
