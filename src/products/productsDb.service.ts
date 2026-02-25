@@ -14,6 +14,7 @@ import { Categories } from 'src/categories/entities/Category.entity';
 import { Users } from 'src/users/entities/users.entity';
 import { ProductStatus } from './product-status.enum';
 import { Eras } from 'src/eras/entities/era.entity';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class ProductsDbService {
@@ -28,6 +29,7 @@ export class ProductsDbService {
     private readonly erasRepository: Repository<Eras>,
     @Inject('CLOUDINARY')
     private readonly cloudinaryClient: typeof cloudinary,
+    private readonly emailService: EmailService,
   ) {}
 
   async getProducts(): Promise<Product[]> {
@@ -103,7 +105,22 @@ export class ProductsDbService {
       status: ProductStatus.PENDING,
     });
 
-    return await this.productsRepository.save(product);
+    const savedProduct = await this.productsRepository.save(product);
+
+    if (user?.email) {
+      try {
+        await this.emailService.sendProductImagePublishedEmail(
+          user.email,
+          user.name || 'usuario',
+          savedProduct.title,
+          savedProduct.imgUrl,
+        );
+      } catch (error) {
+        console.error('Error sending product image email:', error);
+      }
+    }
+
+    return savedProduct;
   }
 
   async updateProduct(

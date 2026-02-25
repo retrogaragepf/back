@@ -12,6 +12,7 @@ import { Request } from 'express';
 import { Cart } from 'src/carts/entities/cart.entity';
 import { randomBytes } from 'crypto';
 import { DiscountService } from 'src/discountCode/discountCode.service';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class StripeService {
@@ -20,6 +21,7 @@ export class StripeService {
   constructor(
     private configService: ConfigService,
     private discountService: DiscountService,
+    private readonly emailService: EmailService,
 
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
@@ -198,10 +200,10 @@ export class StripeService {
 
       if (existingOrder) return;
 
-      await this.dataSource.transaction(async (manager) => {
+      const purchaseEmailPayload = await this.dataSource.transaction(async (manager) => {
         const cart = await manager.findOne(Cart, {
           where: { user: { id: userId } },
-          relations: ['cartItems', 'cartItems.product'],
+          relations: ['user', 'cartItems', 'cartItems.product'],
         });
 
         if (!cart || !cart.cartItems.length) {
@@ -246,6 +248,13 @@ export class StripeService {
 
         await manager.save(order);
 
+        const emailItems: Array<{
+          title: string;
+          quantity: number;
+          unitPrice: number;
+          subtotal: number;
+        }> = [];
+
         for (const item of cart.cartItems) {
           const subtotalItem = item.quantity * Number(item.priceAtMoment);
 
@@ -260,6 +269,13 @@ export class StripeService {
             }),
           );
 
+          emailItems.push({
+            title: item.product.title,
+            quantity: item.quantity,
+            unitPrice: Number(item.priceAtMoment),
+            subtotal: subtotalItem,
+          });
+
           item.product.stock -= item.quantity;
           await manager.save(item.product);
         }
@@ -267,7 +283,35 @@ export class StripeService {
         await manager.delete(CartItem, {
           cart: { id: cart.id },
         });
+
+        if (cart.user?.email) {
+          return {
+            to: cart.user.email,
+            name: cart.user.name || 'usuario',
+            orderId: order.id,
+            total: Number(order.total),
+            trackingCode: order.trackingCode,
+            items: emailItems,
+          };
+        }
+
+        return null;
       });
+
+      if (purchaseEmailPayload) {
+        try {
+          await this.emailService.sendPurchaseConfirmationEmail(
+            purchaseEmailPayload.to,
+            purchaseEmailPayload.name,
+            purchaseEmailPayload.orderId,
+            purchaseEmailPayload.total,
+            purchaseEmailPayload.trackingCode,
+            purchaseEmailPayload.items,
+          );
+        } catch (error) {
+          console.error('Error sending purchase confirmation email:', error);
+        }
+      }
     }
 
     return { received: true };

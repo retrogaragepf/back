@@ -7,9 +7,13 @@ import { Users } from 'src/users/entities/users.entity';
 import { Categories } from 'src/categories/entities/Category.entity';
 import { CloudinaryConfig } from 'src/config/cloudinary';
 import { Eras } from 'src/eras/entities/era.entity';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product, Users, Categories, Eras])],
+  imports: [
+    TypeOrmModule.forFeature([Product, Users, Categories, Eras]),
+    EmailModule,
+  ],
   controllers: [ProductsController],
   providers: [ProductsDbService, CloudinaryConfig],
   exports: [ProductsDbService],
