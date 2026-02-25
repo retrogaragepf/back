@@ -15,6 +15,8 @@ import { Users } from 'src/users/entities/users.entity';
 import { ProductStatus } from './product-status.enum';
 import { Eras } from 'src/eras/entities/era.entity';
 import { EmailService } from 'src/email/email.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from 'src/notifications/notification-type.enum';
 
 @Injectable()
 export class ProductsDbService {
@@ -30,6 +32,7 @@ export class ProductsDbService {
     @Inject('CLOUDINARY')
     private readonly cloudinaryClient: typeof cloudinary,
     private readonly emailService: EmailService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async getProducts(): Promise<Product[]> {
@@ -155,14 +158,42 @@ export class ProductsDbService {
     const product = await this.getProductById(id);
     if (!product) throw new NotFoundException('Product not found');
     product.status = ProductStatus.APPROVED;
-    return await this.productsRepository.save(product);
+    const savedProduct = await this.productsRepository.save(product);
+
+    if (savedProduct.user?.id) {
+      try {
+        await this.notificationsService.createNotification(
+          savedProduct.user.id,
+          NotificationType.PRODUCT_APPROVED,
+          `Tu producto "${savedProduct.title}" fue aprobado por el admin.`,
+        );
+      } catch (error) {
+        console.error('Error creating product approved notification:', error);
+      }
+    }
+
+    return savedProduct;
   }
 
   async rejectProduct(id: string): Promise<Product> {
     const product = await this.getProductById(id);
     if (!product) throw new NotFoundException('Product not found');
     product.status = ProductStatus.REJECTED;
-    return await this.productsRepository.save(product);
+    const savedProduct = await this.productsRepository.save(product);
+
+    if (savedProduct.user?.id) {
+      try {
+        await this.notificationsService.createNotification(
+          savedProduct.user.id,
+          NotificationType.PRODUCT_REJECTED,
+          `Tu producto "${savedProduct.title}" fue rechazado por el admin.`,
+        );
+      } catch (error) {
+        console.error('Error creating product rejected notification:', error);
+      }
+    }
+
+    return savedProduct;
   }
 
   async getTotalProducts(): Promise<number> {

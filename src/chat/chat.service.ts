@@ -125,12 +125,49 @@ export class ChatService {
   }
 
   async getUserConversations(userId: string) {
-    return this.participantRepo.find({
+    const conversations = await this.participantRepo.find({
       where: {
         user: { id: userId },
         conversation: { isActive: true },
       },
       relations: ['conversation'],
+    });
+
+    if (conversations.length === 0) {
+      return conversations;
+    }
+
+    const conversationIds = conversations.map(
+      (conversation) => conversation.conversationId,
+    );
+
+    const unreadRows = await this.messageRepo
+      .createQueryBuilder('message')
+      .innerJoin('message.conversation', 'conversation')
+      .innerJoin('message.sender', 'sender')
+      .select('conversation.id', 'conversationId')
+      .addSelect('COUNT(message.id)', 'unreadCount')
+      .where('conversation.id IN (:...conversationIds)', { conversationIds })
+      .andWhere('message.isRead = :isRead', { isRead: false })
+      .andWhere('sender.id != :userId', { userId })
+      .groupBy('conversation.id')
+      .getRawMany<{ conversationId: string; unreadCount: string }>();
+
+    const unreadCountByConversation = new Map(
+      unreadRows.map((row) => [row.conversationId, Number(row.unreadCount)]),
+    );
+
+    return conversations.map((conversation) => {
+      const unreadCount =
+        unreadCountByConversation.get(conversation.conversationId) ?? 0;
+
+      return {
+        ...conversation,
+        unreadCount,
+        conversation: conversation.conversation
+          ? { ...conversation.conversation, unreadCount }
+          : conversation.conversation,
+      };
     });
   }
 
