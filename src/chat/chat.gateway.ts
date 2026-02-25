@@ -17,7 +17,7 @@ import { ChatService } from './chat.service';
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  public server: Server;
 
   constructor(
     private jwtService: JwtService,
