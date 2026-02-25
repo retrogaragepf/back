@@ -42,6 +42,13 @@ export class ChatController {
     return this.chatService.getUserConversations(req.user.id);
   }
 
+  @Get('conversations')
+  @Roles(Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  getConversationsAsAdmin() {
+    return this.chatService.getConversationsAsAdmin();
+  }
+
   @UseGuards(JwtAuthGuard, NotBlockedGuard)
   @Get('conversation/:id/messages')
   getMessages(@Param('id') id: string, @Req() req) {
