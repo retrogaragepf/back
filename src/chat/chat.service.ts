@@ -80,7 +80,10 @@ export class ChatService {
     return conversation;
   }
 
-  async createMessage(senderId: string, dto: CreateMessageDto): Promise<Message> {
+  async createMessage(
+    senderId: string,
+    dto: CreateMessageDto,
+  ): Promise<Message> {
     const { conversationId, content } = dto;
     const conversation = await this.conversationRepo.findOne({
       where: { id: conversationId },
@@ -346,24 +349,6 @@ export class ChatService {
     conversation.isBlocked = false;
     await this.conversationRepo.save(conversation);
     return { message: 'Conversación desbloqueada correctamente' };
-  }
-
-  async deleteConversation(id: string, userId: string) {
-    const conversation = await this.conversationRepo.findOne({
-      where: { id },
-    });
-    if (!conversation) {
-      throw new NotFoundException('Conversacion no encontrada');
-    }
-    const isParticipant = await this.isUserInConversation(userId, id);
-    if (!isParticipant) {
-      throw new ForbiddenException(
-        'No tienes permiso para eliminar esta conversacion',
-      );
-    }
-    conversation.isActive = false;
-    await this.conversationRepo.save(conversation);
-    return { message: 'Conversacion eliminada correctamente' };
   }
 
   async deleteConversationAsAdmin(id: string) {
