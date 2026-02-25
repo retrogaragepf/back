@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from './entities/users.entity';
 import { Repository } from 'typeorm';
-import { CreateUserDto } from './dto/users.dto';
+import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
 import { Cart } from 'src/carts/entities/cart.entity';
 import { DataSource } from 'typeorm';
 
@@ -52,6 +52,7 @@ export class UsersRepository {
         name: newUserData.name,
         email: newUserData.email,
         password: newUserData.password,
+        address: newUserData.address ?? null,
         provider: 'local',
         isActive: true,
         isAdmin: false,
@@ -87,7 +88,7 @@ export class UsersRepository {
 
   async updateUser(
     id: string,
-    newUserData: Users,
+    newUserData: UpdateUserDto,
   ): Promise<Omit<Users, 'password'> | string> {
     const user = await this.ormUsersRepository.findOneBy({ id });
     if (!user) throw new NotFoundException(`No existe usuario con id ${id}`);

@@ -24,6 +24,13 @@ export class Users {
 
   @Column({
     type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  address?: string | null;
+
+  @Column({
+    type: 'varchar',
     length: 60,
     nullable: true,
     select: false,
