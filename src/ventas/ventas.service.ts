@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Order, OrderStatus } from 'src/orders/entities/order.entity';
 import {
   OrderItem,
   OrderItemStatus,
@@ -81,7 +82,7 @@ export class VentasService {
     return this.orderItemsRepository
       .createQueryBuilder('item')
       .leftJoin('item.product', 'product')
-      .leftJoin('product.seller', 'seller')
+      .leftJoin('product.user', 'seller')
       .where('seller.id = :sellerId', { sellerId })
       .select([
         'COUNT(item.id) as totalSales',
@@ -101,7 +102,7 @@ export class VentasService {
   ) {
     const item = await this.orderItemsRepository.findOne({
       where: { id: orderItemId },
-      relations: ['product', 'product.seller'],
+      relations: ['product', 'product.user', 'order'],
     });
 
     if (!item) {
@@ -113,6 +114,49 @@ export class VentasService {
     }
 
     item.status = status;
-    return this.orderItemsRepository.save(item);
+    await this.orderItemsRepository.save(item);
+    await this.syncOrderStatus(item.order.id);
+
+    return item;
+  }
+
+  private async syncOrderStatus(orderId: string) {
+    const orderRepository = this.orderItemsRepository.manager.getRepository(Order);
+
+    const order = await orderRepository.findOne({
+      where: { id: orderId },
+      relations: ['items'],
+    });
+
+    if (!order || !order.items.length) {
+      return;
+    }
+
+    const allDelivered = order.items.every(
+      (item) => item.status === OrderItemStatus.DELIVERED,
+    );
+    const allShippedOrDelivered = order.items.every(
+      (item) =>
+        item.status === OrderItemStatus.SHIPPED ||
+        item.status === OrderItemStatus.DELIVERED,
+    );
+    const allCancelled = order.items.every(
+      (item) => item.status === OrderItemStatus.CANCELLED,
+    );
+
+    let nextStatus = OrderStatus.PAID;
+
+    if (allDelivered) {
+      nextStatus = OrderStatus.DELIVERED;
+    } else if (allShippedOrDelivered) {
+      nextStatus = OrderStatus.SHIPPED;
+    } else if (allCancelled) {
+      nextStatus = OrderStatus.CANCELLED;
+    }
+
+    if (order.status !== nextStatus) {
+      order.status = nextStatus;
+      await orderRepository.save(order);
+    }
   }
 }

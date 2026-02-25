@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
+import { OrderItemStatus } from './entities/order-item.entity';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { NotificationType } from 'src/notifications/notification-type.enum';
 
@@ -44,6 +45,12 @@ export class OrdersService {
       throw new ForbiddenException('You are not the seller of this order');
     }
 
+    for (const item of order.items) {
+      if (item.status === OrderItemStatus.PAID) {
+        item.status = OrderItemStatus.SHIPPED;
+      }
+    }
+
     order.status = OrderStatus.SHIPPED;
     const savedOrder = await this.orderRepository.save(order);
 
@@ -70,14 +77,26 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    if (order.status !== OrderStatus.SHIPPED) {
+    const allItemsShippedOrDelivered = order.items.every(
+      (item) =>
+        item.status === OrderItemStatus.SHIPPED ||
+        item.status === OrderItemStatus.DELIVERED,
+    );
+
+    if (!allItemsShippedOrDelivered) {
       throw new BadRequestException(
-        'Order must be SHIPPED to confirm delivery',
+        'All order items must be SHIPPED to confirm delivery',
       );
     }
 
     if (order.user.id !== buyerId) {
       throw new ForbiddenException('You are not the buyer of this order');
+    }
+
+    for (const item of order.items) {
+      if (item.status === OrderItemStatus.SHIPPED) {
+        item.status = OrderItemStatus.DELIVERED;
+      }
     }
 
     order.status = OrderStatus.DELIVERED;
