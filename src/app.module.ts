@@ -17,6 +17,7 @@ import { OrdersModule } from './orders/order.module';
 import { VentasModule } from './ventas/ventas.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     OrdersModule,
     VentasModule,
     NotificationsModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

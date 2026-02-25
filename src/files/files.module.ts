@@ -4,9 +4,10 @@ import { Product } from 'src/products/entities/products.entity';
 import { FilesService } from './files.service';
 import { filesController } from './files.controller';
 import { CloudinaryConfig } from 'src/config/cloudinary';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product])],
+  imports: [TypeOrmModule.forFeature([Product]), EmailModule],
   providers: [CloudinaryConfig, FilesService],
   controllers: [filesController],
 })
