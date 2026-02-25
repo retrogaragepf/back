@@ -12,5 +12,6 @@ import { Eras } from 'src/eras/entities/era.entity';
   imports: [TypeOrmModule.forFeature([Product, Users, Categories, Eras])],
   controllers: [ProductsController],
   providers: [ProductsDbService, CloudinaryConfig],
+  exports: [ProductsDbService],
 })
 export class ProductsModule {}

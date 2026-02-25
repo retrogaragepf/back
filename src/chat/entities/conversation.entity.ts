@@ -19,6 +19,12 @@ export class Conversation {
   })
   type: 'PRIVATE' | 'SUPPORT';
 
+  @Column({ default: true })
+  isActive: boolean;
+
+  @Column({ default: false })
+  isBlocked: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

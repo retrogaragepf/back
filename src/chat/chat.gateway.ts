@@ -9,7 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
-import { forwardRef, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
@@ -19,9 +19,9 @@ import { forwardRef, Inject } from '@nestjs/common';
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
+
   constructor(
     private jwtService: JwtService,
-    @Inject(forwardRef(() => ChatService))
     private chatService: ChatService,
   ) {}
 
@@ -44,12 +44,36 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log('Cliente desconectado:', client.id);
   }
 
+  private extractConversationId(
+    payload: string | { conversationId?: string },
+  ): string | null {
+    if (typeof payload === 'string' && payload.trim().length > 0) {
+      return payload;
+    }
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      typeof payload.conversationId === 'string' &&
+      payload.conversationId.trim().length > 0
+    ) {
+      return payload.conversationId;
+    }
+    return null;
+  }
+
   @SubscribeMessage('joinConversation')
-  async handleJoinConversation(client: Socket, conversationId: string) {
+  async handleJoinConversation(
+    client: Socket,
+    payload: string | { conversationId?: string },
+  ) {
     const user = client.data.user;
     if (!user) {
       client.disconnect();
       return;
+    }
+    const conversationId = this.extractConversationId(payload);
+    if (!conversationId) {
+      throw new WsException('conversationId es obligatorio');
     }
     const isParticipant = await this.chatService.isUserInConversation(
       user.sub,
@@ -66,5 +90,33 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(
       `Usuario ${user.sub} se unió a la conversación ${conversationId}`,
     );
+  }
+
+  @SubscribeMessage('sendMessage')
+  async handleSendMessage(
+    client: Socket,
+    payload: { conversationId: string; content: string },
+  ) {
+    const user = client.data.user;
+    if (!user) {
+      client.disconnect();
+      return;
+    }
+
+    const message = await this.chatService.createMessage(user.sub, payload);
+    if (!message) {
+      throw new WsException('No se pudo crear el mensaje');
+    }
+    const eventPayload = {
+      id: message.id,
+      content: message.content,
+      isRead: message.isRead,
+      createdAt: message.createdAt,
+      sender: message.sender,
+      conversationId: payload.conversationId,
+      senderId: user.sub,
+    };
+    this.server.to(payload.conversationId).emit('newMessage', eventPayload);
+    return message;
   }
 }

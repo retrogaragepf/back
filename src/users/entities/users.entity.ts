@@ -1,6 +1,7 @@
 import { Cart } from 'src/carts/entities/cart.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/products.entity';
+import { Notification } from 'src/notifications/entities/notifications.entity';
 import {
   Column,
   CreateDateColumn,
@@ -31,6 +32,20 @@ export class Users {
 
   @Column({
     type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  avatarPublicId: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  avatarUrl: string | null;
+
+  @Column({
+    type: 'varchar',
     length: 20,
     nullable: true,
   })
@@ -52,6 +67,9 @@ export class Users {
   @Column({ default: true, name: 'is_active' })
   isActive: boolean;
 
+  @Column({ default: false })
+  isSupportAdmin: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -63,4 +81,7 @@ export class Users {
 
   @OneToMany(() => Order, (order) => order.user)
   orders: Order[];
+
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Notification[];
 }

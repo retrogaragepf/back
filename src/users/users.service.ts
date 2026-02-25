@@ -5,9 +5,12 @@ import { Users } from './entities/users.entity';
 @Injectable()
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
-  async getAllUsers(
-  ): Promise<Omit<Users, 'password'>[]> {
+  async getAllUsers(): Promise<Omit<Users, 'password'>[]> {
     return await this.usersRepository.getAllUsers();
+  }
+
+  async getActiveUsers() {
+    return this.usersRepository.getActiveUsers();
   }
 
   async getUserById(id: string): Promise<Omit<Users, 'password' | 'isAdmin'>> {
@@ -16,6 +19,13 @@ export class UsersService {
 
   async updateUser(id: string, updateUserData: any) {
     return await this.usersRepository.updateUser(id, updateUserData);
+  }
+
+  async updateMyAvatar(
+    id: string,
+    data: { avatarPublicId?: string | null; avatarUrl?: string | null },
+  ) {
+    return await this.usersRepository.updateMyAvatar(id, data);
   }
 
   async deleteUser(id: string) {

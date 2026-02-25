@@ -7,12 +7,10 @@ import {
   Patch,
   Post,
   Put,
-  Query,
   Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  ForbiddenException,
 } from '@nestjs/common';
 import { ProductsDbService } from './productsDb.service';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
@@ -49,10 +47,11 @@ export class ProductsController {
     return this.productsDbService.getProductById(id);
   }
 
-  @ApiConsumes('multipart/form-data')
+  @ApiConsumes('multipart/form-data', 'application/json')
   @ApiBody({
     schema: {
       type: 'object',
+      required: ['title', 'description', 'price', 'stock', 'categoryId', 'erasId'],
       properties: {
         title: { type: 'string' },
         description: { type: 'string' },
@@ -60,6 +59,7 @@ export class ProductsController {
         stock: { type: 'number' },
         categoryId: { type: 'string' },
         erasId: { type: 'string' },
+        imgUrl: { type: 'string', format: 'uri' },
         image: {
           type: 'string',
           format: 'binary',
@@ -73,8 +73,8 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard, NotBlockedGuard)
   createProduct(
     @Body() product: CreateProductDto,
-    @UploadedFile() file: Express.Multer.File,
     @Req() req,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
     return this.productsDbService.createProduct(product, file, req.user);
   }

@@ -7,13 +7,12 @@ import {
   ParseUUIDPipe,
   Patch,
   Put,
-  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { Users } from './entities/users.entity';
-import { UpdateUserDto } from './dto/users.dto';
+import { UpdateMyAvatarDto, UpdateUserDto } from './dto/users.dto';
 import { Roles } from 'src/decorators/roles.decorator';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Role } from './roles.enum';
@@ -42,8 +41,8 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  getProfile(@Req() req) {
-    return req.user;
+  async getProfile(@Req() req) {
+    return this.userService.getUserById(req.user.id);
   }
 
   @Get(':id')
@@ -61,6 +60,16 @@ export class UsersController {
     return await this.userService.updateUser(id, updateUserData);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/avatar')
+  async updateMyAvatar(@Req() req, @Body() avatarData: UpdateMyAvatarDto) {
+    return await this.userService.updateMyAvatar(req.user.id, avatarData);
+  }
+
+  @ApiBearerAuth()
+  @Roles(Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
   async deleteUser(@Param('id', ParseUUIDPipe) id: string) {
     return await this.userService.deleteUser(id);

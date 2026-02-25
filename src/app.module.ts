@@ -14,9 +14,13 @@ import { SeederModule } from './seeders/seeder.module';
 import { StripeModule } from './stripe/stripe.module';
 import { ChatModule } from './chat/chat.module';
 import { OrdersModule } from './orders/order.module';
+import { VentasModule } from './ventas/ventas.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env.development',
@@ -35,6 +39,8 @@ import { OrdersModule } from './orders/order.module';
     StripeModule,
     ChatModule,
     OrdersModule,
+    VentasModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

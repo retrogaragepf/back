@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/products.entity';
 import { Repository } from 'typeorm';
@@ -56,7 +61,7 @@ export class ProductsDbService {
 
   async createProduct(
     dto: CreateProductDto,
-    file: Express.Multer.File,
+    file: Express.Multer.File | undefined,
     user: Users,
   ): Promise<Product> {
     const category = await this.categoriesRepository.findOne({
@@ -75,7 +80,16 @@ export class ProductsDbService {
       throw new NotFoundException('Era not found');
     }
 
-    const image = await this.uploadToCloudinary(file);
+    const providedImgUrl = dto.imgUrl?.trim();
+    const image =
+      providedImgUrl ||
+      (file ? await this.uploadToCloudinary(file) : undefined);
+
+    if (!image) {
+      throw new BadRequestException(
+        'You must provide either an image file or imgUrl.',
+      );
+    }
 
     const product = this.productsRepository.create({
       title: dto.title,
@@ -105,6 +119,10 @@ export class ProductsDbService {
   }
 
   private uploadToCloudinary(file: Express.Multer.File): Promise<string> {
+    if (!file?.buffer) {
+      throw new BadRequestException('Invalid image file.');
+    }
+
     return new Promise((resolve, reject) => {
       const upload = this.cloudinaryClient.uploader.upload_stream(
         { folder: 'products' },
@@ -128,5 +146,9 @@ export class ProductsDbService {
     if (!product) throw new NotFoundException('Product not found');
     product.status = ProductStatus.REJECTED;
     return await this.productsRepository.save(product);
+  }
+
+  async getTotalProducts(): Promise<number> {
+    return this.productsRepository.count();
   }
 }
