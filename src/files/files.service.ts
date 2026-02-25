@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import toStream = require('buffer-to-stream');
 import { Product } from 'src/products/entities/products.entity';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class FilesService {
@@ -11,16 +12,32 @@ export class FilesService {
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
     @Inject('CLOUDINARY') private readonly cloudinaryClient: typeof cloudinary,
+    private readonly emailService: EmailService,
   ) {}
 
   async updateProductImage(productId: string, file: Express.Multer.File) {
     const product = await this.productRepo.findOne({
       where: { id: productId },
+      relations: ['user'],
     });
     if (!product) throw new NotFoundException('Producto no encontrado');
     const imageUrl = await this.uploadToCloudinary(file);
     product.imgUrl = imageUrl;
     await this.productRepo.save(product);
+
+    if (product.user?.email) {
+      try {
+        await this.emailService.sendProductImagePublishedEmail(
+          product.user.email,
+          product.user.name || 'usuario',
+          product.title,
+          imageUrl,
+        );
+      } catch (error) {
+        console.error('Error sending updated image email:', error);
+      }
+    }
+
     return { message: 'Imagen actualizada', imgUrl: imageUrl };
   }
 

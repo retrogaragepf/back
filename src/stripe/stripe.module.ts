@@ -8,6 +8,7 @@ import { OrderItem } from 'src/orders/entities/order-item.entity';
 import { CartItem } from 'src/cartItem/entities/cartItem.entity';
 import { DiscountCode } from 'src/discountCode/entities/discount_codes.entity';
 import { DiscountModule } from 'src/discountCode/discountCode.module';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { DiscountModule } from 'src/discountCode/discountCode.module';
       DiscountCode,
     ]),
     DiscountModule,
+    EmailModule,
   ],
   controllers: [StripeController],
   providers: [StripeService],
