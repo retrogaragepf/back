@@ -258,6 +258,21 @@ export class StripeService {
             subtotal: number;
           }> = [];
           const sellerIds = new Set<string>();
+          const sellerEmailPayloads = new Map<
+            string,
+            {
+              to: string;
+              name: string;
+              orderId: string;
+              trackingCode: string;
+              items: Array<{
+                title: string;
+                quantity: number;
+                unitPrice: number;
+                subtotal: number;
+              }>;
+            }
+          >();
 
           for (const item of cart.cartItems) {
             const subtotalItem = item.quantity * Number(item.priceAtMoment);
@@ -283,6 +298,29 @@ export class StripeService {
             const sellerId = item.product.user?.id;
             if (sellerId && sellerId !== userId) {
               sellerIds.add(sellerId);
+
+              const sellerEmail = item.product.user?.email;
+              if (sellerEmail) {
+                const existingPayload = sellerEmailPayloads.get(sellerId);
+                const sellerItem = {
+                  title: item.product.title,
+                  quantity: item.quantity,
+                  unitPrice: Number(item.priceAtMoment),
+                  subtotal: subtotalItem,
+                };
+
+                if (existingPayload) {
+                  existingPayload.items.push(sellerItem);
+                } else {
+                  sellerEmailPayloads.set(sellerId, {
+                    to: sellerEmail,
+                    name: item.product.user?.name || 'usuario',
+                    orderId: order.id,
+                    trackingCode: order.trackingCode,
+                    items: [sellerItem],
+                  });
+                }
+              }
             }
 
             item.product.stock -= item.quantity;
@@ -306,6 +344,7 @@ export class StripeService {
 
           return {
             purchaseEmailPayload,
+            sellerEmailPayloads: Array.from(sellerEmailPayloads.values()),
             notificationPayload: {
               buyerId: userId,
               orderId: order.id,
@@ -328,6 +367,26 @@ export class StripeService {
         } catch (error) {
           console.error('Error sending purchase confirmation email:', error);
         }
+      }
+
+      if (checkoutPayload.sellerEmailPayloads.length) {
+        const sellerEmailsResult = await Promise.allSettled(
+          checkoutPayload.sellerEmailPayloads.map((payload) =>
+            this.emailService.sendSaleConfirmationEmail(
+              payload.to,
+              payload.name,
+              payload.orderId,
+              payload.trackingCode,
+              payload.items,
+            ),
+          ),
+        );
+
+        sellerEmailsResult.forEach((result) => {
+          if (result.status === 'rejected') {
+            console.error('Error sending seller sale confirmation email:', result.reason);
+          }
+        });
       }
 
       try {
