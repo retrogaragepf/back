@@ -59,6 +59,11 @@ export class CreateUserDto {
   @Validate(MatchPassword, ['password'])
   confirmPassword: string;
 
+  @IsOptional()
+  @IsString({ message: 'Dirección debe ser un string' })
+  @MaxLength(255, { message: 'Dirección de máximo 255 caracteres' })
+  address?: string;
+
   @ApiHideProperty()
   @IsEmpty()
   isAdmin: boolean;
@@ -71,7 +76,8 @@ export class LoginUserDto extends PickType(CreateUserDto, [
 
 export class UpdateUserDto {
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Dirección debe ser un string' })
+  @MaxLength(255, { message: 'Dirección de máximo 255 caracteres' })
   address?: string;
 
   @IsOptional()

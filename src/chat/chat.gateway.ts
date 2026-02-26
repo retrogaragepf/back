@@ -9,7 +9,6 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
-import { Inject } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
@@ -18,7 +17,7 @@ import { Inject } from '@nestjs/common';
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  public server: Server;
 
   constructor(
     private jwtService: JwtService,
@@ -33,9 +32,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
       const payload = await this.jwtService.verifyAsync(token);
       client.data.user = payload;
-      console.log('Usuario conectado:', payload.sub);
+      console.log('Usuario conectado:', payload.id);
     } catch (error) {
-      console.log('Error de autenticación WS');
+      console.log('Error de autenticacion WS');
       client.disconnect();
     }
   }
@@ -45,7 +44,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private extractConversationId(
-    payload: string | { conversationId?: string },
+    payload: string | { conversationId?: string; id?: string },
   ): string | null {
     if (typeof payload === 'string' && payload.trim().length > 0) {
       return payload;
@@ -58,16 +57,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
       return payload.conversationId;
     }
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      typeof payload.id === 'string' &&
+      payload.id.trim().length > 0
+    ) {
+      return payload.id;
+    }
     return null;
   }
 
   @SubscribeMessage('joinConversation')
   async handleJoinConversation(
     client: Socket,
-    payload: string | { conversationId?: string },
+    payload: string | { conversationId?: string; id?: string },
   ) {
     const user = client.data.user;
-    if (!user) {
+    if (!user?.id) {
       client.disconnect();
       return;
     }
@@ -76,20 +83,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new WsException('conversationId es obligatorio');
     }
     const isParticipant = await this.chatService.isUserInConversation(
-      user.sub,
+      user.id,
       conversationId,
     );
     if (!isParticipant) {
       console.log(
-        `Usuario ${user.sub} intentó unirse a conversación no permitida`,
+        `Usuario ${user.id} intento unirse a conversacion no permitida`,
       );
-      throw new WsException('No perteneces a esta conversación');
-      return;
+      throw new WsException('No perteneces a esta conversacion');
     }
     client.join(conversationId);
-    console.log(
-      `Usuario ${user.sub} se unió a la conversación ${conversationId}`,
-    );
+    console.log(`Usuario ${user.id} se unio a la conversacion ${conversationId}`);
   }
 
   @SubscribeMessage('sendMessage')
@@ -98,12 +102,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     payload: { conversationId: string; content: string },
   ) {
     const user = client.data.user;
-    if (!user) {
+    if (!user?.id) {
       client.disconnect();
       return;
     }
 
-    const message = await this.chatService.createMessage(user.sub, payload);
+    const message = await this.chatService.createMessage(user.id, payload);
     if (!message) {
       throw new WsException('No se pudo crear el mensaje');
     }
@@ -114,7 +118,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       createdAt: message.createdAt,
       sender: message.sender,
       conversationId: payload.conversationId,
-      senderId: user.sub,
+      senderId: message.sender?.id ?? user.id,
     };
     this.server.to(payload.conversationId).emit('newMessage', eventPayload);
     return message;

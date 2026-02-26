@@ -13,6 +13,8 @@ import { Cart } from 'src/carts/entities/cart.entity';
 import { randomBytes } from 'crypto';
 import { DiscountService } from 'src/discountCode/discountCode.service';
 import { EmailService } from 'src/email/email.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from 'src/notifications/notification-type.enum';
 
 @Injectable()
 export class StripeService {
@@ -22,6 +24,7 @@ export class StripeService {
     private configService: ConfigService,
     private discountService: DiscountService,
     private readonly emailService: EmailService,
+    private readonly notificationsService: NotificationsService,
 
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
@@ -200,117 +203,150 @@ export class StripeService {
 
       if (existingOrder) return;
 
-      const purchaseEmailPayload = await this.dataSource.transaction(async (manager) => {
-        const cart = await manager.findOne(Cart, {
-          where: { user: { id: userId } },
-          relations: ['user', 'cartItems', 'cartItems.product'],
-        });
-
-        if (!cart || !cart.cartItems.length) {
-          throw new Error('Cart is empty');
-        }
-
-        let subtotal = 0;
-
-        for (const item of cart.cartItems) {
-          if (item.quantity > item.product.stock) {
-            throw new Error(`Not enough stock for ${item.product.title}`);
-          }
-
-          subtotal += item.quantity * Number(item.priceAtMoment);
-        }
-
-        const discountCode = session.metadata?.discountCode;
-        let discountPercentage = Number(
-          session.metadata?.discountPercentage || 0,
-        );
-
-        let discountAmount = 0;
-
-        if (discountCode && discountPercentage > 0) {
-          discountAmount = subtotal * (discountPercentage / 100);
-
-          await this.discountService.markAsUsed(discountCode, userId, manager);
-        }
-
-        const finalTotal = subtotal - discountAmount;
-
-        const trackingCode =
-          'TRK-' + randomBytes(4).toString('hex').toUpperCase();
-
-        const order = manager.create(Order, {
-          user: { id: userId } as any,
-          stripeSessionId: session.id,
-          total: finalTotal,
-          trackingCode,
-          status: OrderStatus.PAID,
-        });
-
-        await manager.save(order);
-
-        const emailItems: Array<{
-          title: string;
-          quantity: number;
-          unitPrice: number;
-          subtotal: number;
-        }> = [];
-
-        for (const item of cart.cartItems) {
-          const subtotalItem = item.quantity * Number(item.priceAtMoment);
-
-          await manager.save(
-            manager.create(OrderItem, {
-              order,
-              product: item.product,
-              quantity: item.quantity,
-              title: item.product.title,
-              unitPrice: item.priceAtMoment,
-              subtotal: subtotalItem,
-            }),
-          );
-
-          emailItems.push({
-            title: item.product.title,
-            quantity: item.quantity,
-            unitPrice: Number(item.priceAtMoment),
-            subtotal: subtotalItem,
+      const checkoutPayload = await this.dataSource.transaction(
+        async (manager) => {
+          const cart = await manager.findOne(Cart, {
+            where: { user: { id: userId } },
+            relations: ['user', 'cartItems', 'cartItems.product', 'cartItems.product.user'],
           });
 
-          item.product.stock -= item.quantity;
-          await manager.save(item.product);
-        }
+          if (!cart || !cart.cartItems.length) {
+            throw new Error('Cart is empty');
+          }
 
-        await manager.delete(CartItem, {
-          cart: { id: cart.id },
-        });
+          let subtotal = 0;
 
-        if (cart.user?.email) {
+          for (const item of cart.cartItems) {
+            if (item.quantity > item.product.stock) {
+              throw new Error(`Not enough stock for ${item.product.title}`);
+            }
+
+            subtotal += item.quantity * Number(item.priceAtMoment);
+          }
+
+          const discountCode = session.metadata?.discountCode;
+          const discountPercentage = Number(
+            session.metadata?.discountPercentage || 0,
+          );
+
+          let discountAmount = 0;
+
+          if (discountCode && discountPercentage > 0) {
+            discountAmount = subtotal * (discountPercentage / 100);
+
+            await this.discountService.markAsUsed(discountCode, userId, manager);
+          }
+
+          const finalTotal = subtotal - discountAmount;
+          const trackingCode =
+            'TRK-' + randomBytes(4).toString('hex').toUpperCase();
+
+          const order = manager.create(Order, {
+            user: { id: userId } as any,
+            stripeSessionId: session.id,
+            total: finalTotal,
+            trackingCode,
+            status: OrderStatus.PAID,
+          });
+
+          await manager.save(order);
+
+          const emailItems: Array<{
+            title: string;
+            quantity: number;
+            unitPrice: number;
+            subtotal: number;
+          }> = [];
+          const sellerIds = new Set<string>();
+
+          for (const item of cart.cartItems) {
+            const subtotalItem = item.quantity * Number(item.priceAtMoment);
+
+            await manager.save(
+              manager.create(OrderItem, {
+                order,
+                product: item.product,
+                quantity: item.quantity,
+                title: item.product.title,
+                unitPrice: item.priceAtMoment,
+                subtotal: subtotalItem,
+              }),
+            );
+
+            emailItems.push({
+              title: item.product.title,
+              quantity: item.quantity,
+              unitPrice: Number(item.priceAtMoment),
+              subtotal: subtotalItem,
+            });
+
+            const sellerId = item.product.user?.id;
+            if (sellerId && sellerId !== userId) {
+              sellerIds.add(sellerId);
+            }
+
+            item.product.stock -= item.quantity;
+            await manager.save(item.product);
+          }
+
+          await manager.delete(CartItem, {
+            cart: { id: cart.id },
+          });
+
+          const purchaseEmailPayload = cart.user?.email
+            ? {
+                to: cart.user.email,
+                name: cart.user.name || 'usuario',
+                orderId: order.id,
+                total: Number(order.total),
+                trackingCode: order.trackingCode,
+                items: emailItems,
+              }
+            : null;
+
           return {
-            to: cart.user.email,
-            name: cart.user.name || 'usuario',
-            orderId: order.id,
-            total: Number(order.total),
-            trackingCode: order.trackingCode,
-            items: emailItems,
+            purchaseEmailPayload,
+            notificationPayload: {
+              buyerId: userId,
+              orderId: order.id,
+              sellerIds: Array.from(sellerIds),
+            },
           };
-        }
+        },
+      );
 
-        return null;
-      });
-
-      if (purchaseEmailPayload) {
+      if (checkoutPayload.purchaseEmailPayload) {
         try {
           await this.emailService.sendPurchaseConfirmationEmail(
-            purchaseEmailPayload.to,
-            purchaseEmailPayload.name,
-            purchaseEmailPayload.orderId,
-            purchaseEmailPayload.total,
-            purchaseEmailPayload.trackingCode,
-            purchaseEmailPayload.items,
+            checkoutPayload.purchaseEmailPayload.to,
+            checkoutPayload.purchaseEmailPayload.name,
+            checkoutPayload.purchaseEmailPayload.orderId,
+            checkoutPayload.purchaseEmailPayload.total,
+            checkoutPayload.purchaseEmailPayload.trackingCode,
+            checkoutPayload.purchaseEmailPayload.items,
           );
         } catch (error) {
           console.error('Error sending purchase confirmation email:', error);
         }
+      }
+
+      try {
+        await Promise.all([
+          this.notificationsService.createNotification(
+            checkoutPayload.notificationPayload.buyerId,
+            NotificationType.PURCHASE,
+            `Tu compra fue confirmada. Pedido ${checkoutPayload.notificationPayload.orderId}.`,
+          ),
+          ...checkoutPayload.notificationPayload.sellerIds.map((sellerId) =>
+            this.notificationsService.createNotification(
+              sellerId,
+              NotificationType.SALE,
+              `Tienes una nueva venta. Pedido ${checkoutPayload.notificationPayload.orderId}.`,
+            ),
+          ),
+        ]);
+      } catch (error) {
+        console.error('Error creating purchase/sale notifications:', error);
       }
     }
 
