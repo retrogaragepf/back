@@ -8,6 +8,7 @@ import {
   IsString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
 
 class CheckoutItemDto {
   @IsUUID()
@@ -20,10 +21,12 @@ class CheckoutItemDto {
 
 export class CreateCheckoutDto {
   @IsArray()
-  items: { productId: string; quantity: number }[];
+  @ApiProperty({ type: [CheckoutItemDto] })
+  items: CheckoutItemDto[];
 
   @IsOptional()
   @IsString()
+  @ApiProperty({ required: false })
   discountCode?: string;
 
   @IsOptional()
