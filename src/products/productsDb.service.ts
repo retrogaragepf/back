@@ -172,6 +172,19 @@ export class ProductsDbService {
       }
     }
 
+    if (savedProduct.user?.email) {
+      try {
+        await this.emailService.sendProductReviewStatusEmail(
+          savedProduct.user.email,
+          savedProduct.user.name || 'usuario',
+          savedProduct.title,
+          'approved',
+        );
+      } catch (error) {
+        console.error('Error sending product approved email:', error);
+      }
+    }
+
     return savedProduct;
   }
 
@@ -190,6 +203,19 @@ export class ProductsDbService {
         );
       } catch (error) {
         console.error('Error creating product rejected notification:', error);
+      }
+    }
+
+    if (savedProduct.user?.email) {
+      try {
+        await this.emailService.sendProductReviewStatusEmail(
+          savedProduct.user.email,
+          savedProduct.user.name || 'usuario',
+          savedProduct.title,
+          'rejected',
+        );
+      } catch (error) {
+        console.error('Error sending product rejected email:', error);
       }
     }
 
