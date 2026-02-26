@@ -1,98 +1,162 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# RetroGarage Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend de RetroGarage construido con NestJS, TypeORM y PostgreSQL.
+Expone API REST documentada con Swagger, integra pagos con Stripe, carga de imagenes con Cloudinary, autenticacion JWT/Google y chat en tiempo real con Socket.IO.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Stack
 
-## Description
+- Node.js + NestJS 11
+- TypeScript
+- PostgreSQL + TypeORM
+- Swagger (`/api`)
+- Stripe (checkout + webhook)
+- Cloudinary
+- Socket.IO (chat)
+- Nodemailer (mail)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Modulos principales
 
-## Project setup
+- `auth`: login/signup/JWT/google login
+- `users`: perfil, administracion, bloqueo/desbloqueo
+- `products`: CRUD de productos + aprobacion/rechazo admin
+- `categories` y `eras`: catalogos (con seed automatico)
+- `cart`: carrito del usuario
+- `orders`: ordenes del comprador/admin
+- `ventas`: ventas y metricas del vendedor
+- `discounts`: cupones de descuento
+- `stripe`: checkout, consulta de sesion y webhook
+- `files`: upload/actualizacion de imagenes de producto
+- `chat`: conversaciones REST + gateway websocket
+- `notifications`: notificaciones y cron diario
 
-```bash
-$ npm install
-```
+## Requisitos
 
-## Compile and run the project
+- Node.js 20+ (recomendado)
+- npm
+- PostgreSQL
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
+## Instalacion y arranque local
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm install
 ```
 
-## Deployment
+1. Crear archivo de entorno:
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+```powershell
+Copy-Item .env.example .env.development
+```
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+2. Completar variables faltantes (ver tabla de abajo).
+3. Levantar el servidor:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Servidor local por defecto: `http://localhost:3002`
+Swagger: `http://localhost:3002/api`
 
-## Resources
+## Variables de entorno
 
-Check out a few resources that may come in handy when working with NestJS:
+Estas variables se usan en el proyecto:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+| Variable | Descripcion |
+| --- | --- |
+| `HOST` | Host de la app (default `localhost`) |
+| `PORT` | Puerto de la app (default `3002`) |
+| `DB_NAME` | Nombre de la base de datos PostgreSQL |
+| `DB_HOST` | Host de PostgreSQL |
+| `DB_PORT` | Puerto de PostgreSQL |
+| `DB_USERNAME` | Usuario de PostgreSQL |
+| `DB_PASSWORD` | Password de PostgreSQL |
+| `JWT_SECRET` | Secreto para firmar JWT |
+| `GOOGLE_CLIENT_ID` | Client ID para Google login |
+| `GOOGLE_CLIENT_SECRET` | Client secret de Google (si aplica en tu flujo) |
+| `GOOGLE_CALLBACK_URL` | URL callback Google (si aplica en tu flujo) |
+| `CLOUDINARY_CLOUD_NAME` | Cloud name de Cloudinary |
+| `CLOUDINARY_API_KEY` | API key de Cloudinary |
+| `CLOUDINARY_API_SECRET` | API secret de Cloudinary |
+| `STRIPE_SECRET_KEY` | Secret key de Stripe |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret del webhook Stripe |
+| `EMAIL_HOST` | Host SMTP |
+| `EMAIL_PORT` | Puerto SMTP |
+| `EMAIL_USER` | Usuario SMTP / API key |
+| `EMAIL_PASS` | Password SMTP / API secret |
+| `EMAIL_FROM` | Remitente por defecto |
 
-## Support
+## Scripts utiles
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+| Script | Uso |
+| --- | --- |
+| `npm run start:dev` | Modo desarrollo |
+| `npm run build` | Compilar a `dist` |
+| `npm run start` | Ejecutar build (`node dist/main.js`) |
+| `npm run lint` | Lint con autofix |
+| `npm run test` | Tests unitarios |
+| `npm run test:e2e` | Tests end-to-end |
+| `npm run test:cov` | Cobertura |
 
-## Stay in touch
+## Migraciones (TypeORM)
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Scripts disponibles:
 
-## License
+```bash
+npm run migration:create
+npm run migration:generate
+npm run migration:run:ts
+npm run migration:revert:ts
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Tambien existen scripts contra `dist`:
+
+```bash
+npm run build
+npm run migration:run
+npm run migration:revert
+```
+
+Nota: el datasource de migraciones usa `dotenv/config` por defecto. Si corres migraciones en local, asegurate de tener variables en entorno o en un archivo `.env`.
+
+## Seed automatico
+
+Al iniciar la app, `SeederService` crea categorias y eras si no existen registros.
+
+## Stripe webhook (local)
+
+El endpoint de webhook es:
+
+`POST /api/stripe/webhook`
+
+La app ya configura `express.raw()` para ese endpoint. En local puedes reenviar eventos con Stripe CLI:
+
+```bash
+stripe listen --forward-to localhost:3002/api/stripe/webhook
+```
+
+## Chat en tiempo real (Socket.IO)
+
+- Handshake JWT en `handshake.auth.token`
+- Eventos principales: `joinConversation`, `sendMessage`, `newMessage` (emitido por el servidor)
+
+## Rutas base de la API
+
+- `/auth`
+- `/users`
+- `/products`
+- `/categories`
+- `/eras`
+- `/cart`
+- `/orders`
+- `/ventas`
+- `/discounts`
+- `/api/stripe`
+- `/files`
+- `/chat`
+- `/notifications`
+
+## Deploy
+
+La documentacion Swagger tambien incluye servidor de referencia en:
+
+`https://back-0o27.onrender.com`
