@@ -9,25 +9,57 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiUnauthorizedResponse,
+  ApiParam,
+} from '@nestjs/swagger';
 import { FilesService } from './files.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { UpdateProductImageDto } from './dto/UpdateImageDto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @ApiTags('Files')
 @Controller('files')
-export class filesController {
+export class FilesController {
   constructor(private readonly cloudinaryService: FilesService) {}
 
-  @Post('uploadImage/:id')
-  @ApiBearerAuth('jwt')
+  @Post('upload-image/:id')
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Subir imagen de producto',
+    description:
+      'Permite subir o actualizar la imagen de un producto. Solo acepta JPG, JPEG, PNG o WEBP con tamaño máximo de 200KB.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del producto',
+    example: 'a1b2c3d4-e5f6-7890-1234-56789abcdef0',
+  })
   @ApiBody({
-    description: 'Upload a new image for a product',
-    type: UpdateProductImageDto,
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Imagen subida correctamente',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Usuario no autenticado',
   })
   upLoadFile(
     @Param('id') id: string,
